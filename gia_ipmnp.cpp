@@ -1,5 +1,4 @@
 #include "gia_ipmnp.h"
-#include <iostream>
 
 using namespace std;
 
@@ -331,7 +330,7 @@ IPv4_Addr::IPv4_Addr(const u8i *arr) {
     }
 }
 
-string IPv4_Addr::to_str() {
+string IPv4_Addr::to_str() const {
     string ret;
     ret.reserve(17);
     u32i idx {4};
@@ -343,7 +342,7 @@ string IPv4_Addr::to_str() {
     return ret;
 }
 
-bool IPv4_Addr::is_glob_ucast() {
+bool IPv4_Addr::is_glob_ucast() const {
     return (!is_unknown()) && (!is_private()) && (!is_loopback()) && (!is_link_local()) && (!is_lim_bcast()) && (!is_mcast())
            && (!is_as112()) && (!is_shared()) && (!is_reserved()) && (!is_docum()) && (!is_benchm()) && (!is_ietf()) && (!is_amt()) && (!is_dirdeleg());
 }
@@ -375,7 +374,7 @@ IPv6_Addr::IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i
     as_u16i[0] = xtt8;
 }
 
-bool IPv6_Addr::getzg(u32i *beg, u32i *end) {
+bool IPv6_Addr::getzg(u32i *beg, u32i *end) const {
     struct { u32i beg, end, len; } zrGrp[3] {{0,0,0}, {0,0,0}, {0,0,0}}, zrBestGrp; // groups of zeroed hextets
     u32i cur {0}; // current group number
     bool start {true}; // start of zeroes sequence ?
@@ -416,7 +415,7 @@ bool IPv6_Addr::getzg(u32i *beg, u32i *end) {
     return false;
 }
 
-string IPv6_Addr::to_str(u32i fmt) {
+string IPv6_Addr::to_str(u32i fmt) const {
     const char *useSet = ((fmt & v6mnp::Upper) == v6mnp::Upper) ? v6mnp::hexUpp : v6mnp::hexLow;
     string ret;
     ret.reserve(46);
@@ -470,21 +469,21 @@ string IPv6_Addr::to_str(u32i fmt) {
     return ret;
 }
 
-bool IPv4_Addr::is_private() {
+bool IPv4_Addr::is_private() const {
     if ((as_u32i & 0xFF000000) == 0x0A000000) return true; // 10/8
     if ((as_u32i & 0xFFF00000) == 0xAC100000) return true; // 172.(16-31)/16
     if ((as_u32i & 0xFFFF0000) == 0xC0A80000) return true; // 192.168/16
     return false;
 }
 
-bool IPv4_Addr::is_docum() {
+bool IPv4_Addr::is_docum() const {
     if ((as_u32i & 0xFFFFFF00) == 0xC0000200) return true; // 192.0.2/24 (TEST-NET-1)
     if ((as_u32i & 0xFFFFFF00) == 0xC6336400) return true; // 198.51.100/24 (TEST-NET-2)
     if ((as_u32i & 0xFFFFFF00) == 0xCB007100) return true; // 203.0.113/24 (TEST-NET-3)
     return false;
 }
 
-IPv6_Addr IPv6_Addr::operator+(IPv6_Addr sum) {
+IPv6_Addr IPv6_Addr::operator+(const IPv6_Addr &sum) const {
     IPv6_Addr ret {*this};
     ret.as_u64i[1] += sum.as_u64i[1];
     if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum.as_u64i[0]) ret.as_u64i[1]++;
@@ -492,14 +491,14 @@ IPv6_Addr IPv6_Addr::operator+(IPv6_Addr sum) {
     return ret;
 }
 
-IPv6_Addr IPv6_Addr::operator+(u64i sum) {
+IPv6_Addr IPv6_Addr::operator+(u64i sum) const {
     IPv6_Addr ret {*this};
     if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum) ret.as_u64i[1]++;
     ret.as_u64i[0] += sum;
     return ret;
 }
 
-IPv6_Addr IPv6_Addr::operator-(IPv6_Addr sub) {
+IPv6_Addr IPv6_Addr::operator-(const IPv6_Addr &sub) const {
     IPv6_Addr ret {*this};
     ret.as_u64i[1] -= sub.as_u64i[1];
     if (sub.as_u64i[0] > as_u64i[0]) ret.as_u64i[1]--;
@@ -507,14 +506,14 @@ IPv6_Addr IPv6_Addr::operator-(IPv6_Addr sub) {
     return ret;
 }
 
-IPv6_Addr IPv6_Addr::operator-(u64i sub) {
+IPv6_Addr IPv6_Addr::operator-(u64i sub) const {
     IPv6_Addr ret {*this};
     if (sub > as_u64i[0]) ret.as_u64i[1]--;
     ret.as_u64i[0] -= sub;
     return ret;
 }
 
-void IPv6_Addr::operator+=(IPv6_Addr sum) {
+void IPv6_Addr::operator+=(const IPv6_Addr &sum) {
     as_u64i[1] += sum.as_u64i[1];
     if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum.as_u64i[0]) as_u64i[1]++;
     as_u64i[0] += sum.as_u64i[0];
@@ -525,7 +524,7 @@ void IPv6_Addr::operator+=(u64i sum) {
     as_u64i[0] += sum;
 }
 
-void IPv6_Addr::operator-=(IPv6_Addr sub) {
+void IPv6_Addr::operator-=(const IPv6_Addr &sub) {
     as_u64i[1] -= sub.as_u64i[1];
     if (sub.as_u64i[0] > as_u64i[0]) as_u64i[1]--;
     as_u64i[0] -= sub.as_u64i[0];
@@ -536,31 +535,31 @@ void IPv6_Addr::operator-=(u64i sub) {
     as_u64i[0] -= sub;
 }
 
-bool IPv6_Addr::operator>(IPv6_Addr ip) {
+bool IPv6_Addr::operator>(const IPv6_Addr &ip) const {
     if (as_u64i[1] > ip.as_u64i[1]) return true;
     if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] > ip.as_u64i[0];
     return false;
 }
 
-bool IPv6_Addr::operator<(IPv6_Addr ip) {
+bool IPv6_Addr::operator<(const IPv6_Addr &ip) const {
     if (as_u64i[1] < ip.as_u64i[1]) return true;
     if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] < ip.as_u64i[0];
     return false;
 }
 
-bool IPv6_Addr::operator>=(IPv6_Addr ip) {
+bool IPv6_Addr::operator>=(const IPv6_Addr &ip) const {
     if (as_u64i[1] > ip.as_u64i[1]) return true;
     if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] >= ip.as_u64i[0];
     return false;
 }
 
-bool IPv6_Addr::operator<=(IPv6_Addr ip) {
+bool IPv6_Addr::operator<=(const IPv6_Addr &ip) const {
     if (as_u64i[1] < ip.as_u64i[1]) return true;
     if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] <= ip.as_u64i[0];
     return false;
 }
 
-IPv6_Addr IPv6_Addr::operator<<(u32i shift) {
+IPv6_Addr IPv6_Addr::operator<<(u32i shift) const {
     IPv6_Addr ret {*this};
     if (shift > 128) shift = 128;
     if ((shift > 64) && (shift < 128)) {
@@ -612,7 +611,7 @@ void IPv6_Addr::operator<<=(u32i shift) {
     }
 }
 
-IPv6_Addr IPv6_Addr::operator>>(u32i shift) {
+IPv6_Addr IPv6_Addr::operator>>(u32i shift) const {
     IPv6_Addr ret {*this};
     if (shift > 128) shift = 128;
     if ((shift > 64) && (shift < 128)) {
@@ -664,7 +663,7 @@ void IPv6_Addr::operator>>=(u32i shift) {
     }
 }
 
-string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) {
+string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) const {
     string ret;
     ret.reserve(18);
     if (grp_len > 3) grp_len = 3;
@@ -687,7 +686,7 @@ string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) {
     return ret;
 }
 
-array<u8i,6> MAC_Addr::get_media_tx_fmt() {
+array<u8i,6> MAC_Addr::get_media_tx_fmt() const {
     array<u8i,6> ret;
     for (u32i idx = 0; idx < 6; idx++) {
         ret[5 - idx] = as_u8i[idx];
