@@ -190,7 +190,6 @@ vector<string> v6mnp::xtts_split(const string &text, char spl) {
     return ret;
 }
 
-
 bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
     if (ret != nullptr) *ret = {0x0, 0x0};
     IPv6_Addr interim {0, 0}; // reverse order like in real memory
@@ -287,6 +286,12 @@ bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
     return true;
 }
 
+IPv6_Addr v6mnp::to_IPv6(const string &ipstr) {
+    IPv6_Addr ret;
+    valid_addr(ipstr, &ret);
+    return ret;
+}
+
 IPv6_Mask v6mnp::gen_mask(u32i mask_len) {
     if (mask_len > 128) mask_len = 128;
     u64i left = 0xFFFF'FFFF'FFFF'FFFF, right = 0xFFFF'FFFF'FFFF'FFFF;
@@ -353,6 +358,10 @@ IPv6_Addr::IPv6_Addr(const u16i *arr) {
     for (u32i idx = 0; idx <= 7; idx++){
         as_u16i[idx] = arr[7 - idx];
     }
+}
+
+IPv6_Addr::IPv6_Addr(const string &ipstr) {
+    *(IPv6_Addr*)this = v6mnp::to_IPv6(ipstr);
 }
 
 IPv6_Addr::IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i xtt6, u16i xtt7, u16i xtt8) {

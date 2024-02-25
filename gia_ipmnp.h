@@ -42,6 +42,7 @@ public:
     static const char hexLow[];  // "0123456789abcdef"
     static const char hexPerm[]; // "0123456789abcdefABCDEF"
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
+    static IPv6_Addr to_IPv6(const string &ipstr); // ip string to IPv6_Addr object
     static IPv6_Mask gen_mask(u32i mask_len); // generate bitmask from mask length
     static IPv6_Addr gen_link_local(u64i iface_id); // generate link-local address
     static IPv6_Addr gen_link_local(const MAC_Addr &mac); // generate link-local address
@@ -123,8 +124,7 @@ public:
     IPv4_Addr(u32i val) { as_u32i = val; };
     IPv4_Addr(u8i oct1, u8i oct2, u8i oct3, u8i oct4);
     IPv4_Addr(const u8i *arr);
-    IPv4_Addr(const string &ipstr) { as_u32i = v4mnp::to_u32i(ipstr); };
-    IPv4_Addr(const char ipcstr[]) { as_u32i = v4mnp::to_u32i(ipcstr); };
+    IPv4_Addr(const string &ipstr);
     string to_str();
     bool is_unknown() { return as_u32i == 0; }; // 0.0.0.0/32, aka "This host on this network"
     bool is_private(); // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
@@ -191,6 +191,7 @@ public:
     IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4 = true);
     IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i xtt6, u16i xtt7, u16i xtt8);
     IPv6_Addr(const u16i *arr);
+    IPv6_Addr(const string &ipstr);
     string to_str(u32i fmt);
     string to_str() { return to_str(v6mnp::what_fmt()); };
     bool is_unspec() { return !(as_u64i[0] | as_u64i[1]); }; // ::1/128 - RFC 4291
