@@ -1,6 +1,7 @@
 #ifndef GIA_IPMNP_H
 #define GIA_IPMNP_H
 
+#include <array>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -49,7 +50,6 @@ public:
     enum enHextets {xtt1 = 7, xtt2 = 6, xtt3 = 5, xtt4 = 4, xtt5 = 3, xtt6 = 2, xtt7 = 1, xtt8 = 0};
 };
 
-// gen mac from mcast/bcast ipv4/ipv6
 class macmnp {
     static inline char _def_sep {':'};
     static inline u32i _def_grp_len {1};
@@ -80,10 +80,11 @@ public:
     MAC_Addr() { as_48bits = 0; };
     MAC_Addr(u64i _48bits) { as_48bits = _48bits; fix(); };
     MAC_Addr(u32i oui, u32i nic) { as_48bits = oui; as_48bits = ((as_48bits << 24) & 0xFFFFFF000000) | (nic & 0xFFFFFF); fix(); };
-    MAC_Addr(const string &macstr, char sep, u32i grp_len) { macmnp::to_48bits(macstr, sep, grp_len); };
+    MAC_Addr(const string &macstr, char sep, u32i grp_len) { as_48bits = macmnp::to_48bits(macstr, sep, grp_len); };
     void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
     string to_str(char sep, u32i grp_len, bool caps);
     string to_str() { return to_str(macmnp::what_sep(), macmnp::what_grp_len(), macmnp::what_caps()); };
+    array<u8i,6> get_media_tx_fmt();
     void set_nic(u32i nic) { *((u16i*)&as_48bits) = *((u16i*)&nic); as_u8i[macmnp::oct4] = ((u8i*)&nic)[macmnp::oct4]; };
     void set_oui(u32i oui) { *((u32i*)&as_u8i[macmnp::oct3]) = oui; as_48bits &= 0xFFFFFFFFFFFF; };
     u32i get_nic() { return as_48bits & 0xFFFFFF; };

@@ -1,6 +1,5 @@
-#include <iostream>
 #include "gia_ipmnp.h"
-#include <iomanip>
+#include <iostream>
 
 using namespace std;
 
@@ -679,6 +678,14 @@ string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) {
     return ret;
 }
 
+array<u8i,6> MAC_Addr::get_media_tx_fmt() {
+    array<u8i,6> ret;
+    for (u32i idx = 0; idx < 6; idx++) {
+        ret[5 - idx] = as_u8i[idx];
+    }
+    return ret;
+}
+
 bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret) {
     if (ret != nullptr) *ret = 0;
     size_t len {macstr.length()};
@@ -720,7 +727,7 @@ bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *
     }
     if (seps != sepsMax) return false;
     if (interim.length() != 12) return false;
-    _48bits = stoll(interim, nullptr, 16);
+    _48bits = stoull(interim, nullptr, 16);
     if (ret != nullptr) ret->as_48bits = _48bits;
     return true;
 }
