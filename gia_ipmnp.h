@@ -21,12 +21,9 @@ using IPv6_Mask = IPv6_Addr;
 
 class v4mnp {
 public:
-    static const u32i UNKNOWN_NODE_ID {0x00000000};
     static const u32i UNKNOWN_IP_ADDR {0x00000000};
     static const u32i LOOPBACK_MASK {0xFFFFFFFF};
-    static bool valid_addr(const string &ipstr, u32i *ret = nullptr); // address validator
     static bool valid_addr(const string &ipstr, IPv4_Addr *ret = nullptr); // address validator
-    static bool valid_mask(const string &maskstr, u32i *ret = nullptr); // mask validator
     static bool valid_mask(const string &maskstr, IPv4_Mask *ret = nullptr); // mask validator
     static u32i to_u32i(const string &ipstr); // ip string to integer
     static IPv4_Addr to_IPv4(const string &ipstr); // ip string to IPv4_Addr object
@@ -127,7 +124,8 @@ public:
     IPv4_Addr(u32i val) { as_u32i = val; };
     IPv4_Addr(u8i oct1, u8i oct2, u8i oct3, u8i oct4);
     IPv4_Addr(const u8i *arr);
-    IPv4_Addr(const string &ipstr);
+    IPv4_Addr(const string &ipstr) { v4mnp::valid_addr(ipstr, this); };
+    IPv4_Addr(const char *ipcstr) { v4mnp::valid_addr(ipcstr, this); };
     string to_str() const;
     bool is_unknown() const { return as_u32i == 0; }; // 0.0.0.0/32, aka "This host on this network"
     bool is_private() const; // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918

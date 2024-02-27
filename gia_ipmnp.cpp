@@ -1,4 +1,5 @@
 #include "gia_ipmnp.h"
+#include <iostream>
 
 using namespace std;
 
@@ -8,8 +9,8 @@ const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
 
-bool v4mnp::valid_addr(const string &ipstr, u32i *ret) {
-    if (ret != nullptr) *ret = 0x0;
+bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
+    if (ret != nullptr) ret->as_u32i = 0x0;
     size_t len {ipstr.length()};
     if ((len > 15) || (len < 7)) return false;
     size_t dotpos[3];
@@ -41,22 +42,14 @@ bool v4mnp::valid_addr(const string &ipstr, u32i *ret) {
     if ((octets[0] > 255) || (octets[1] > 255) || (octets[2] > 255) || (octets[3] > 255)) return false;
     if (ret != nullptr) {
         for (auto i = 0; i <= 3; i++) {
-            *ret |= (octets[i] << (8 * i));
+            ret->as_u32i |= (octets[i] << (8 * i));
         }
     }
     return true;
 }
 
-bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
-    u32i interim;
-    bool result;
-    result = valid_addr(ipstr, &interim);
-    ret->as_u32i = interim;
-    return result;
-}
-
-bool v4mnp::valid_mask(const string &maskstr, u32i *ret) {
-    if (ret != nullptr) *ret = 0x0;
+bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret) {
+    if (ret != nullptr) ret->as_u32i = 0x0;
     size_t len {maskstr.length()};
     if ((len > 15) || (len < 7)) return false;
     size_t dotpos[3];
@@ -98,7 +91,7 @@ bool v4mnp::valid_mask(const string &maskstr, u32i *ret) {
     if ((octets[0] <= octets[1]) && (octets[1] <= octets[2]) && (octets[2] <= octets[3])) {
         if (ret != nullptr) {
             for (auto i = 0; i <= 3; i++) {
-                *ret |= (octets[i] << (8 * i));
+                ret->as_u32i |= (octets[i] << (8 * i));
             }
         }
         return true;
@@ -106,23 +99,15 @@ bool v4mnp::valid_mask(const string &maskstr, u32i *ret) {
     return false;
 }
 
-bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret) {
-    u32i interim;
-    bool result;
-    result = valid_mask(maskstr, &interim);
-    ret->as_u32i = interim;
-    return result;
-}
-
 u32i v4mnp::to_u32i(const string &ipstr) {
-    u32i ret;
+    IPv4_Addr ret;
     valid_addr(ipstr, &ret);
-    return ret;
+    return ret.as_u32i;
 }
 
 IPv4_Addr v4mnp::to_IPv4(const string &ipstr) {
     IPv4_Addr ret;
-    valid_addr(ipstr, &ret.as_u32i);
+    valid_addr(ipstr, &ret);
     return ret;
 }
 
@@ -241,10 +226,10 @@ bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
             if (ip[idx] == ':') break;
         } while (idx > 1);
         idx++;
-        u32i ipv4;
+        IPv4_Addr ipv4;
         v4Len = fullLen - idx;
         if (v4mnp::valid_addr(ip.substr(idx, fullLen - idx), &ipv4)) {
-            interim.as_u32i[0] = ipv4;
+            interim.as_u32i[0] = ipv4.as_u32i;
             leftToFill -= 2;
         } else return false;
     }
@@ -338,13 +323,27 @@ string IPv4_Addr::to_str() const {
         idx--;
         ret += (to_string(u32i(as_u8i[idx])) + ".");
     } while (idx != 0);
-    ret.pop_back(); // удаляем ненужную точку в конце
+    ret.pop_back(); // cut-off last dot
     return ret;
 }
 
 bool IPv4_Addr::is_glob_ucast() const {
     return (!is_unknown()) && (!is_private()) && (!is_loopback()) && (!is_link_local()) && (!is_lim_bcast()) && (!is_mcast())
            && (!is_as112()) && (!is_shared()) && (!is_reserved()) && (!is_docum()) && (!is_benchm()) && (!is_ietf()) && (!is_amt()) && (!is_dirdeleg());
+}
+
+bool IPv4_Addr::is_private() const {
+    if ((as_u32i & 0xFF000000) == 0x0A000000) return true; // 10/8
+    if ((as_u32i & 0xFFF00000) == 0xAC100000) return true; // 172.(16-31)/16
+    if ((as_u32i & 0xFFFF0000) == 0xC0A80000) return true; // 192.168/16
+    return false;
+}
+
+bool IPv4_Addr::is_docum() const {
+    if ((as_u32i & 0xFFFFFF00) == 0xC0000200) return true; // 192.0.2/24 (TEST-NET-1)
+    if ((as_u32i & 0xFFFFFF00) == 0xC6336400) return true; // 198.51.100/24 (TEST-NET-2)
+    if ((as_u32i & 0xFFFFFF00) == 0xCB007100) return true; // 203.0.113/24 (TEST-NET-3)
+    return false;
 }
 
 IPv6_Addr::IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4) {
@@ -467,20 +466,6 @@ string IPv6_Addr::to_str(u32i fmt) const {
         ret.append(IPv4_Addr(as_u32i[0]).to_str());
     }
     return ret;
-}
-
-bool IPv4_Addr::is_private() const {
-    if ((as_u32i & 0xFF000000) == 0x0A000000) return true; // 10/8
-    if ((as_u32i & 0xFFF00000) == 0xAC100000) return true; // 172.(16-31)/16
-    if ((as_u32i & 0xFFFF0000) == 0xC0A80000) return true; // 192.168/16
-    return false;
-}
-
-bool IPv4_Addr::is_docum() const {
-    if ((as_u32i & 0xFFFFFF00) == 0xC0000200) return true; // 192.0.2/24 (TEST-NET-1)
-    if ((as_u32i & 0xFFFFFF00) == 0xC6336400) return true; // 198.51.100/24 (TEST-NET-2)
-    if ((as_u32i & 0xFFFFFF00) == 0xCB007100) return true; // 203.0.113/24 (TEST-NET-3)
-    return false;
 }
 
 IPv6_Addr IPv6_Addr::operator+(const IPv6_Addr &sum) const {
