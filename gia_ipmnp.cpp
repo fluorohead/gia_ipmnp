@@ -683,7 +683,6 @@ bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *
     if (ret != nullptr) *ret = 0;
     size_t len {macstr.length()};
     if ((len > 17) || (len < 12)) return false; // len(06:05:04:03:02:01) == 17
-    if (!(len % 2)) return false; // length must always be odd
     if (grp_len > 3) return false;
     u64i _48bits;
     string interim;

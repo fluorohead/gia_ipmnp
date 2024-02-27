@@ -21,7 +21,7 @@ using IPv6_Mask = IPv6_Addr;
 
 class v4mnp {
 public:
-    static const u32i UNKNOWN_IP_ADDR {0x00000000};
+    static const u32i UNKNOWN_ADDR {0x00000000};
     static const u32i LOOPBACK_MASK {0xFFFFFFFF};
     static bool valid_addr(const string &ipstr, IPv4_Addr *ret = nullptr); // address validator
     static bool valid_mask(const string &maskstr, IPv4_Mask *ret = nullptr); // mask validator
@@ -35,7 +35,7 @@ public:
 class v6mnp {
     static vector<string> xtts_split(const string &text, char spl); // hextets splitter
     static u32i word_cnt(const string &text, const string &patt); // word counter
-    static inline u32i _fmt = 0;
+    static inline u32i _fmt = 0; // IETF
 public:
     static const u32i IETF = 0, Upper = 1, LeadZrs = 2, Expand = 4, Full = 7; // format flags
     static const char hexUpp[];  // "0123456789ABCDEF"
@@ -127,13 +127,14 @@ public:
     IPv4_Addr(const string &ipstr) { v4mnp::valid_addr(ipstr, this); };
     IPv4_Addr(const char *ipcstr) { v4mnp::valid_addr(ipcstr, this); };
     string to_str() const;
-    bool is_unknown() const { return as_u32i == 0; }; // 0.0.0.0/32, aka "This host on this network"
+    bool is_unknown() const { return as_u32i == 0; }; // 0.0.0.0/32
+    bool is_this_host() const { return as_u32i == 0; }; // aka "This host on this network" - RFC 1112
     bool is_private() const; // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
     bool is_loopback() const { return (as_u32i & 0xFF000000) == 0x7F000000; }; // 127/8 - RFC 1122
     bool is_link_local() const { return (as_u32i & 0xFFFF0000) == 0xA9FE0000;  }; // 169.254/16 - RFC 3927
     bool is_lim_bcast() const { return as_u32i == UINT32_MAX; }; // 255.255.255.255/32 - RFC 6890
-    bool is_mcast() const { return (as_u32i & 0xF0000000) == 0xE0000000; }; // 224/4
-    bool is_ssm() const { return (as_u32i & 0xFF000000) == 0xE80000; }; // 232/8
+    bool is_mcast() const { return (as_u32i & 0xF0000000) == 0xE0000000; }; // 224/4 - RFC 5771
+    bool is_ssm() const { return (as_u32i & 0xFF000000) == 0xE80000; }; // 232/8 - RFC 4607
     bool is_glop() const { return (as_u32i & 0xFF000000) == 0xE90000; }; // 233/8 - RFC 3180
     bool is_ubm() const { return (as_u32i & 0xFF000000) == 0xEA0000; } // 234/8 - RFC 6034
     bool is_ucast() const { return !is_mcast(); };
