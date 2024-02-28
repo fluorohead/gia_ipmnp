@@ -43,6 +43,7 @@ public:
     static const char hexPerm[]; // "0123456789abcdefABCDEF"
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
     static IPv6_Addr to_IPv6(const string &ipstr); // ip string to IPv6_Addr object
+    static u32i mask_len(const IPv6_Mask &mask); // bitmask to mask len
     static IPv6_Mask gen_mask(u32i mask_len); // generate bitmask from mask length
     static IPv6_Addr gen_link_local(u64i iface_id); // generate link-local address
     static IPv6_Addr gen_link_local(const MAC_Addr &mac); // generate link-local address
@@ -85,7 +86,7 @@ public:
     void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
     string to_str(char sep, u32i grp_len, bool caps) const;
     string to_str() const { return to_str(macmnp::what_sep(), macmnp::what_grp_len(), macmnp::what_caps()); };
-    array<u8i,6> get_media_tx_fmt() const ;
+    array<u8i,6> to_media_tx() const ;
     void set_nic(u32i nic) { *((u16i*)&as_48bits) = *((u16i*)&nic); as_u8i[macmnp::oct4] = ((u8i*)&nic)[macmnp::oct4]; };
     void set_oui(u32i oui) { *((u32i*)&as_u8i[macmnp::oct3]) = oui; as_48bits &= 0xFFFFFFFFFFFF; };
     u32i get_nic() const { return as_48bits & 0xFFFFFF; };
@@ -127,6 +128,7 @@ public:
     IPv4_Addr(const string &ipstr) { v4mnp::valid_addr(ipstr, this); };
     IPv4_Addr(const char *ipcstr) { v4mnp::valid_addr(ipcstr, this); };
     string to_str() const;
+    array<u8i,4> to_media_tx() const;
     bool is_unknown() const { return as_u32i == 0; }; // 0.0.0.0/32
     bool is_this_host() const { return as_u32i == 0; }; // aka "This host on this network" - RFC 1112
     bool is_private() const; // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
@@ -196,6 +198,7 @@ public:
     IPv6_Addr(const string &ipstr);
     string to_str(u32i fmt) const;
     string to_str() const { return to_str(v6mnp::what_fmt()); };
+    array<u8i,16> to_media_tx() const;
     bool is_unspec() const { return !(as_u64i[0] | as_u64i[1]); }; // ::1/128 - RFC 4291
     bool is_loopback() const { return (as_u64i[0] | as_u64i[1]) == 1; }; // ::/128 - RFC 4291
     bool is_glob_ucast() const { return (as_u16i[v6mnp::xtt1] & 0xFFE0) == 0x2000; }; // 2000::/3 - RFC 3513

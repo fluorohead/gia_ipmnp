@@ -276,6 +276,18 @@ IPv6_Addr v6mnp::to_IPv6(const string &ipstr) {
     return ret;
 }
 
+u32i v6mnp::mask_len(const IPv6_Mask &mask) {
+    u32i zrcnt {0};
+    for ( ; zrcnt < 64; zrcnt++) {
+        if ((mask.as_u64i[0] >> zrcnt) & 1) return 128 - zrcnt;
+    };
+    zrcnt = 0;
+    for (; zrcnt < 64; zrcnt++) {
+        if ((mask.as_u64i[1] >> zrcnt) & 1) return 64 - zrcnt;
+    }
+    return 0;
+}
+
 IPv6_Mask v6mnp::gen_mask(u32i mask_len) {
     if (mask_len > 128) mask_len = 128;
     u64i left = 0xFFFF'FFFF'FFFF'FFFF, right = 0xFFFF'FFFF'FFFF'FFFF;
@@ -324,6 +336,14 @@ string IPv4_Addr::to_str() const {
         ret += (to_string(u32i(as_u8i[idx])) + ".");
     } while (idx != 0);
     ret.pop_back(); // cut-off last dot
+    return ret;
+}
+
+array<u8i,4> IPv4_Addr::to_media_tx() const {
+    array <u8i,4> ret;
+    for (u32i idx = 0; idx < 5; idx++) {
+        ret[4 - idx] = as_u8i[idx];
+    }
     return ret;
 }
 
@@ -464,6 +484,14 @@ string IPv6_Addr::to_str(u32i fmt) const {
     }
     if (v4) {
         ret.append(IPv4_Addr(as_u32i[0]).to_str());
+    }
+    return ret;
+}
+
+array<u8i,16> IPv6_Addr::to_media_tx() const {
+    array <u8i,16> ret;
+    for (u32i idx = 0; idx < 16; idx++) {
+        ret[15 - idx] = as_u8i[idx];
     }
     return ret;
 }
@@ -671,7 +699,7 @@ string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) const {
     return ret;
 }
 
-array<u8i,6> MAC_Addr::get_media_tx_fmt() const {
+array<u8i,6> MAC_Addr::to_media_tx() const {
     array<u8i,6> ret;
     for (u32i idx = 0; idx < 6; idx++) {
         ret[5 - idx] = as_u8i[idx];
