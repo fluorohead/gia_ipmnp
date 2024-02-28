@@ -136,12 +136,19 @@ public:
     bool is_link_local() const { return (as_u32i & 0xFFFF0000) == 0xA9FE0000;  }; // 169.254/16 - RFC 3927
     bool is_lim_bcast() const { return as_u32i == UINT32_MAX; }; // 255.255.255.255/32 - RFC 6890
     bool is_mcast() const { return (as_u32i & 0xF0000000) == 0xE0000000; }; // 224/4 - RFC 5771
-    bool is_ssm() const { return (as_u32i & 0xFF000000) == 0xE80000; }; // 232/8 - RFC 4607
-    bool is_glop() const { return (as_u32i & 0xFF000000) == 0xE90000; }; // 233/8 - RFC 3180
-    bool is_ubm() const { return (as_u32i & 0xFF000000) == 0xEA0000; } // 234/8 - RFC 6034
-    bool is_ucast() const { return !is_mcast(); };
+    bool is_ssm_blk() const { return (as_u32i & 0xFF000000) == 0xE8000000; }; // 232/8 - RFC 4607
+    bool is_lan_cblock() const { return (as_u32i & 0xFFFFFF00) == 0xE0000000; }; // 224.0.0/24 - Local Network Control Block - RFC 5771
+    bool is_inter_cblock() const { return (as_u32i & 0xFFFFFF00) == 0xE0000100; } // 224.0.1/24 - Internetwork Control Block - RFC 5771
+    bool is_adhoc_blk1() const; // 224.0.2/24-224.0.255/24 - AD-HOC Block 1 - RFC 5771
+    bool is_adhoc_blk2() const; // 224.3/16-224.4/16 - AD-HOC Block II - RFC 5771
+    bool is_adhoc_blk3() const { return (as_u32i & 0xFFFC0000) == 0xE9FC0000; }; // 233.252/14-233.255/14 - AD-HOC Block III - RFC 5771
+    bool is_sdp_sap() const { return (as_u32i & 0xFFFF0000) == 0xE0020000; }; // 224.2/16 - SDP/SAP Block - RFC 5771
+    bool is_glop_blk() const; // 233.0/16-233.251/16 - RFC 5771
+    bool is_adm_scp_blk() const { return (as_u32i & 0xFF000000) == 0xEF000000; }; // 239/8 - Administratively Scoped Block - RFC 5771
+    bool is_ubm() const { return (as_u32i & 0xFF000000) == 0xEA000000; } // 234/8 - RFC 6034
+    bool is_ucast() const { return (as_u32i & 0xF0000000) != 0xE0000000; };
     bool is_as112() const { return (as_u32i & 0xFFFFFF00) == 0xC01FC400; }; // 192.31.196/24 - RFC 7535
-    bool is_glob_ucast() const;
+    bool is_global_ucast() const;
     bool is_shared() const { return (as_u32i & 0xFFC00000) == 0x64400000; }; // 100.64/10 - RFC 6598
     bool is_reserved() const { return (as_u32i & 0xF0000000) == 0xF0000000; }; // 240/4 - RFC 6890
     bool is_docum() const; // 192.0.2/24, 198.51.100/24, 203.0.113/24 - RFC 5737

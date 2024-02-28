@@ -347,10 +347,27 @@ array<u8i,4> IPv4_Addr::to_media_tx() const {
     return ret;
 }
 
-bool IPv4_Addr::is_glob_ucast() const {
+bool IPv4_Addr::is_global_ucast() const {
     return (!is_unknown()) && (!is_private()) && (!is_loopback()) && (!is_link_local()) && (!is_lim_bcast()) && (!is_mcast())
            && (!is_as112()) && (!is_shared()) && (!is_reserved()) && (!is_docum()) && (!is_benchm()) && (!is_ietf()) && (!is_amt()) && (!is_dirdeleg());
 }
+
+bool IPv4_Addr::is_glop_blk() const {
+    if ((as_u8i[v4mnp::oct1] == 233) && ((as_u8i[v4mnp::oct2] >= 0) && (as_u8i[v4mnp::oct2] <= 251))) return true;
+    return false;
+};
+
+bool IPv4_Addr::is_adhoc_blk1() const {
+    if (((as_u32i & 0xFFFF0000) == 0xE0000000) && ((as_u8i[v4mnp::oct3] >= 2) && (as_u8i[v4mnp::oct3] <= 255))) return true;
+    return false;
+}
+
+bool  IPv4_Addr::is_adhoc_blk2() const {
+    if (((as_u32i & 0xFF000000) == 0xE0000000) && ((as_u8i[v4mnp::oct2] == 3) || (as_u8i[v4mnp::oct2] == 4))) return true;
+    return false;
+}
+
+     // 224.3/16-224.4/16 - AD-HOC Block II - RFC 5771
 
 bool IPv4_Addr::is_private() const {
     if ((as_u32i & 0xFF000000) == 0x0A000000) return true; // 10/8
