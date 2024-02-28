@@ -97,27 +97,34 @@
 
 Следующие методы служат для проверки IPv4-адреса на соответствие одному (или нескольким) диапазонам, описанным в документах **RFC** :
 
-    is_unknown() // 0.0.0.0/32
-    is_this_host() // aka "This host on this network" - RFC 1112
-    is_private() // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
-    is_loopback() // 127/8 - RFC 1122
-    is_link_local() // 169.254/16 - RFC 3927
-    is_lim_bcast() // 255.255.255.255/32 - RFC 6890
-    is_mcast() // 224/4 - Multicast - RFC 5771
-    is_ssm() // 232/8 - Source Specific Multicast RFC 4607
-    is_glop() // 233/8 - RFC 3180
-    is_ubm() // 234/8 - RFC 6034
-    is_ucast() // Unicast
-    is_as112() // 192.31.196/24 - RFC 7535
-    is_glob_ucast() // Global unicast
-    is_shared() // 100.64/10 - RFC 6598
-    is_reserved() // 240/4 - RFC 6890
-    is_docum() // 192.0.2/24, 198.51.100/24, 203.0.113/24 - RFC 5737
-    is_benchm() // 198.18/15 - RFC 2544
-    is_ietf() // 192/24 - RFC 6890
-    is_dslite() // 192/29 - RFC 6333, RFC 7335
-    is_amt() // 92.52.193/24 - RFC 7450
-    is_dirdeleg() // 192.175.48/24 - RFC 7534
+    is_unknown(); // 0.0.0.0/32
+    is_this_host(); // aka "This host on this network" - RFC 1112
+    is_private(); // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
+    is_loopback(); // 127/8 - RFC 1122
+    is_link_local(); // 169.254/16 - RFC 3927
+    is_lim_bcast(); // 255.255.255.255/32 - RFC 6890
+    is_mcast(); // 224/4 - RFC 5771
+    is_ssm_blk(); // 232/8 - RFC 4607
+    is_lan_cblock(); // 224.0.0/24 - Local Network Control Block - RFC 5771
+    is_inter_cblock(); // 224.0.1/24 - Internetwork Control Block - RFC 5771
+    is_adhoc_blk1(); // 224.0.2/24-224.0.255/24 - AD-HOC Block 1 - RFC 5771
+    is_adhoc_blk2(); // 224.3/16-224.4/16 - AD-HOC Block II - RFC 5771
+    is_adhoc_blk3(); // 233.252/14-233.255/14 - AD-HOC Block III - RFC 5771
+    is_sdp_sap(); // 224.2/16 - SDP/SAP Block - RFC 5771
+    is_glop_blk(); // 233.0/16-233.251/16 - RFC 5771
+    is_adm_scp_blk(); // 239/8 - Administratively Scoped Block - RFC 5771
+    is_ubm(); // 234/8 - RFC 6034
+    is_ucast();
+    is_as112(); // 192.31.196/24 - RFC 7535
+    is_global_ucast();
+    is_shared(); // 100.64/10 - RFC 6598
+    is_reserved(); // 240/4 - RFC 6890
+    is_docum(); // 192.0.2/24, 198.51.100/24, 203.0.113/24 - RFC 5737
+    is_benchm(); // 198.18/15 - RFC 2544
+    is_ietf(); // 192/24 - RFC 6890
+    is_dslite(); // 192/29 - RFC 6333, RFC 7335
+    is_amt(); // 92.52.193/24 - RFC 7450
+    is_dirdeleg(); // 192.175.48/24 - RFC 7534
 
 Каждый из них возвращает значение **bool**.
 
@@ -537,5 +544,3 @@
     char what_sep()
     u32i what_grp_len()
     bool what_caps()
-
-
