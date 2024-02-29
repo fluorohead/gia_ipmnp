@@ -116,6 +116,7 @@ public:
 };
 
 class IPv4_Addr {
+    static inline u8i garbage;
 public:
     union {
         u32i as_u32i;
@@ -124,7 +125,8 @@ public:
     IPv4_Addr() { as_u32i = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
     IPv4_Addr(u32i val) { as_u32i = val; };
     IPv4_Addr(u8i oct1, u8i oct2, u8i oct3, u8i oct4);
-    IPv4_Addr(const u8i *arr);
+    IPv4_Addr(const u8i arr [4]);
+    IPv4_Addr(const array<u8i,4> &arr);
     IPv4_Addr(const string &ipstr) { v4mnp::valid_addr(ipstr, this); };
     IPv4_Addr(const char *ipcstr) { v4mnp::valid_addr(ipcstr, this); };
     string to_str() const;
@@ -134,7 +136,7 @@ public:
     bool is_private() const; // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
     bool is_loopback() const { return (as_u32i & 0xFF000000) == 0x7F000000; }; // 127/8 - RFC 1122
     bool is_link_local() const { return (as_u32i & 0xFFFF0000) == 0xA9FE0000;  }; // 169.254/16 - RFC 3927
-    bool is_lim_bcast() const { return as_u32i == UINT32_MAX; }; // 255.255.255.255/32 - RFC 6890
+    bool is_lim_bcast() const { return as_u32i == 0xFFFFFFFF; }; // 255.255.255.255/32 - RFC 6890
     bool is_mcast() const { return (as_u32i & 0xF0000000) == 0xE0000000; }; // 224/4 - RFC 5771
     bool is_ssm_blk() const { return (as_u32i & 0xFF000000) == 0xE8000000; }; // 232/8 - RFC 4607
     bool is_lan_cblock() const { return (as_u32i & 0xFFFFFF00) == 0xE0000000; }; // 224.0.0/24 - Local Network Control Block - RFC 5771
@@ -170,9 +172,13 @@ public:
     void operator<<=(u32i shift) { as_u32i <<= shift; };
     void operator>>=(u32i shift) { as_u32i >>= shift; };
     IPv4_Addr operator&(u32i bitmask) const { return IPv4_Addr{as_u32i & bitmask}; };
-    IPv4_Addr operator&(const IPv4_Addr &bitmask) const { return IPv4_Addr{as_u32i & bitmask.as_u32i}; };
+    IPv4_Addr operator&(const IPv4_Mask &bitmask) const { return IPv4_Addr{as_u32i & bitmask.as_u32i}; };
     void operator&=(u32i bitmask) { as_u32i &= bitmask; };
-    void operator&=(const IPv4_Addr &bitmask) { as_u32i &= bitmask.as_u32i; };
+    void operator&=(const IPv4_Mask &bitmask) { as_u32i &= bitmask.as_u32i; };
+    IPv4_Addr operator|(u32i bitmask) const { return IPv4_Addr{as_u32i | bitmask}; };
+    IPv4_Addr operator|(IPv4_Mask bitmask) const { return IPv4_Addr{as_u32i | bitmask.as_u32i}; };
+    void operator|=(u32i bitmask) { as_u32i |= bitmask; };
+    void operator|=(const IPv4_Mask &bitmask) { as_u32i |= bitmask.as_u32i; };
     bool operator>(u32i ip) const { return as_u32i > ip; };
     bool operator>(const IPv4_Addr &ip) const { return as_u32i > ip.as_u32i; };
     bool operator<(u32i ip) const { return as_u32i < ip; };
@@ -185,6 +191,9 @@ public:
     bool operator==(const IPv4_Addr &ip) const { return as_u32i == ip.as_u32i; };
     bool operator!=(u32i ip) const { return as_u32i != ip; };
     bool operator!=(const IPv4_Addr &ip) const { return as_u32i != ip.as_u32i; };
+    u32i operator()() const { return as_u32i; };
+    u8i& operator[](u32i octet) { if (octet > 3) return garbage; return as_u8i[octet]; };
+    const u8i& operator[](u32i octet) const { if (octet > 3) return garbage; return as_u8i[octet]; };
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
 };
 
@@ -199,10 +208,10 @@ public:
         u8i  as_u8i[16]; // same principe, not human readable
     };
     IPv6_Addr() { as_u64i[1] = 0; as_u64i[0] = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
-    IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4 = true);
+    IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4 = true) { as_u64i[0] = right; as_u64i[1] = left; show_ipv4 = flag_show_ipv4; }
     IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i xtt6, u16i xtt7, u16i xtt8);
     IPv6_Addr(const u16i *arr);
-    IPv6_Addr(const string &ipstr);
+    IPv6_Addr(const string &ipstr) { *this = v6mnp::to_IPv6(ipstr); };
     string to_str(u32i fmt) const;
     string to_str() const { return to_str(v6mnp::what_fmt()); };
     array<u8i,16> to_media_tx() const;
@@ -224,7 +233,7 @@ public:
     bool is_docum() const { return as_u32i[3] == 0x20010DB8; } // 2001:db8::/32 - RFC 3849
     bool is_6to4() const { return as_u16i[v6mnp::xtt1] == 0x2002; }; // 2002::/16 - RFC 3056
     void map_ipv4(u32i ipv4) { as_u16i[v6mnp::xtt6] = 0xFFFF; as_u32i[0] = ipv4; };
-    void map_ipv4(IPv4_Addr ipv4) { map_ipv4(ipv4.as_u32i); };
+    void map_ipv4(IPv4_Addr ipv4) { map_ipv4(ipv4()); };
     void setflag_show_ipv4() { show_ipv4 = true; };
     void unsetflag_show_ipv4() { show_ipv4 = false; };
     IPv6_Addr operator+(const IPv6_Addr &sum) const;
@@ -249,7 +258,7 @@ public:
     void operator<<=(u32i shift);
     IPv6_Addr operator>>(u32i shift) const ;
     void operator>>=(u32i shift);
-    IPv6_Addr operator~() { return IPv6_Addr{~as_u64i[1], ~as_u64i[0]}; };
+    IPv6_Addr operator~(){ return IPv6_Addr{~as_u64i[1], ~as_u64i[0]}; };
 };
 
 

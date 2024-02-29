@@ -1,5 +1,4 @@
 #include "gia_ipmnp.h"
-#include <iostream>
 
 using namespace std;
 
@@ -102,7 +101,7 @@ bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret) {
 u32i v4mnp::to_u32i(const string &ipstr) {
     IPv4_Addr ret;
     valid_addr(ipstr, &ret);
-    return ret.as_u32i;
+    return ret();
 }
 
 IPv4_Addr v4mnp::to_IPv4(const string &ipstr) {
@@ -229,7 +228,7 @@ bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
         IPv4_Addr ipv4;
         v4Len = fullLen - idx;
         if (v4mnp::valid_addr(ip.substr(idx, fullLen - idx), &ipv4)) {
-            interim.as_u32i[0] = ipv4.as_u32i;
+            interim.as_u32i[0] = ipv4();
             leftToFill -= 2;
         } else return false;
     }
@@ -327,6 +326,12 @@ IPv4_Addr::IPv4_Addr(const u8i *arr) {
     }
 }
 
+IPv4_Addr::IPv4_Addr(const array<u8i,4> &arr) {
+    for (u32i idx = 0; idx <= 3; idx++){
+        as_u8i[idx] = arr[3 - idx];
+    }
+}
+
 string IPv4_Addr::to_str() const {
     string ret;
     ret.reserve(17);
@@ -383,20 +388,10 @@ bool IPv4_Addr::is_docum() const {
     return false;
 }
 
-IPv6_Addr::IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4) {
-    as_u64i[0] = right;
-    as_u64i[1] = left;
-    show_ipv4 = flag_show_ipv4;
-}
-
 IPv6_Addr::IPv6_Addr(const u16i *arr) {
     for (u32i idx = 0; idx <= 7; idx++){
         as_u16i[idx] = arr[7 - idx];
     }
-}
-
-IPv6_Addr::IPv6_Addr(const string &ipstr) {
-    *(IPv6_Addr*)this = v6mnp::to_IPv6(ipstr);
 }
 
 IPv6_Addr::IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i xtt6, u16i xtt7, u16i xtt8) {
@@ -794,7 +789,7 @@ MAC_Addr macmnp::to_MAC(const string &macstr) {
 }
 
 MAC_Addr macmnp::gen_mcast(const IPv4_Addr &ip) {
-    return MAC_Addr{0x01005E, ip.as_u32i & 0x007FFFFF};
+    return MAC_Addr{0x01005E, ip() & 0x007FFFFF};
 }
 
 MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip) {
