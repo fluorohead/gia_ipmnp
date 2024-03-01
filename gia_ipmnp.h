@@ -282,7 +282,7 @@ public:
     const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
     //u128i operator%(u64i mod) { return as_u128i % mod; };
-    IPv6_Addr operator/(u64i div);
+    //IPv6_Addr operator/(u64i div);
 };
 
 
