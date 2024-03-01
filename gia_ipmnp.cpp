@@ -1,4 +1,5 @@
 #include "gia_ipmnp.h"
+#include <iostream>
 
 using namespace std;
 
@@ -278,11 +279,11 @@ IPv6_Addr v6mnp::to_IPv6(const string &ipstr) {
 u32i v6mnp::mask_len(const IPv6_Mask &mask) {
     u32i zrcnt {0};
     for ( ; zrcnt < 64; zrcnt++) {
-        if ((mask.as_u64i[0] >> zrcnt) & 1) return 128 - zrcnt;
+        if ((mask.as_u128i.ls >> zrcnt) & 1) return 128 - zrcnt;
     };
     zrcnt = 0;
     for (; zrcnt < 64; zrcnt++) {
-        if ((mask.as_u64i[1] >> zrcnt) & 1) return 64 - zrcnt;
+        if ((mask.as_u128i.ms >> zrcnt) & 1) return 64 - zrcnt;
     }
     return 0;
 }
@@ -388,7 +389,13 @@ bool IPv4_Addr::is_docum() const {
     return false;
 }
 
-IPv6_Addr::IPv6_Addr(const u16i *arr) {
+IPv6_Addr::IPv6_Addr(const u16i arr[8]) {
+    for (u32i idx = 0; idx <= 7; idx++){
+        as_u16i[idx] = arr[7 - idx];
+    }
+}
+
+IPv6_Addr::IPv6_Addr(const array<u16i,8> &arr) {
     for (u32i idx = 0; idx <= 7; idx++){
         as_u16i[idx] = arr[7 - idx];
     }
@@ -510,77 +517,77 @@ array<u8i,16> IPv6_Addr::to_media_tx() const {
 
 IPv6_Addr IPv6_Addr::operator+(const IPv6_Addr &sum) const {
     IPv6_Addr ret {*this};
-    ret.as_u64i[1] += sum.as_u64i[1];
-    if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum.as_u64i[0]) ret.as_u64i[1]++;
-    ret.as_u64i[0] += sum.as_u64i[0];
+    ret.as_u128i.ms += sum.as_u128i.ms;
+    if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum.as_u128i.ls) ret.as_u128i.ms++;
+    ret.as_u128i.ls += sum.as_u128i.ls;
     return ret;
 }
 
 IPv6_Addr IPv6_Addr::operator+(u64i sum) const {
     IPv6_Addr ret {*this};
-    if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum) ret.as_u64i[1]++;
-    ret.as_u64i[0] += sum;
+    if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum) ret.as_u128i.ms++;
+    ret.as_u128i.ls += sum;
     return ret;
 }
 
 IPv6_Addr IPv6_Addr::operator-(const IPv6_Addr &sub) const {
     IPv6_Addr ret {*this};
-    ret.as_u64i[1] -= sub.as_u64i[1];
-    if (sub.as_u64i[0] > as_u64i[0]) ret.as_u64i[1]--;
-    ret.as_u64i[0] -= sub.as_u64i[0];
+    ret.as_u128i.ms -= sub.as_u128i.ms;
+    if (sub.as_u128i.ls > as_u128i.ls) ret.as_u128i.ms--;
+    ret.as_u128i.ls -= sub.as_u128i.ls;
     return ret;
 }
 
 IPv6_Addr IPv6_Addr::operator-(u64i sub) const {
     IPv6_Addr ret {*this};
-    if (sub > as_u64i[0]) ret.as_u64i[1]--;
-    ret.as_u64i[0] -= sub;
+    if (sub > as_u128i.ls) ret.as_u128i.ms--;
+    ret.as_u128i.ls -= sub;
     return ret;
 }
 
 void IPv6_Addr::operator+=(const IPv6_Addr &sum) {
-    as_u64i[1] += sum.as_u64i[1];
-    if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum.as_u64i[0]) as_u64i[1]++;
-    as_u64i[0] += sum.as_u64i[0];
+    as_u128i.ms += sum.as_u128i.ms;
+    if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum.as_u128i.ls) as_u128i.ms++;
+    as_u128i.ls += sum.as_u128i.ls;
 }
 
 void IPv6_Addr::operator+=(u64i sum) {
-    if ((0xFFFF'FFFF'FFFF'FFFF - as_u64i[0]) < sum) as_u64i[1]++;
-    as_u64i[0] += sum;
+    if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum) as_u128i.ms++;
+    as_u128i.ls += sum;
 }
 
 void IPv6_Addr::operator-=(const IPv6_Addr &sub) {
-    as_u64i[1] -= sub.as_u64i[1];
-    if (sub.as_u64i[0] > as_u64i[0]) as_u64i[1]--;
-    as_u64i[0] -= sub.as_u64i[0];
+    as_u128i.ms -= sub.as_u128i.ms;
+    if (sub.as_u128i.ls > as_u128i.ls) as_u128i.ms--;
+    as_u128i.ls -= sub.as_u128i.ls;
 }
 
 void IPv6_Addr::operator-=(u64i sub) {
-    if (sub > as_u64i[0]) as_u64i[1]--;
-    as_u64i[0] -= sub;
+    if (sub > as_u128i.ls) as_u128i.ms--;
+    as_u128i.ls -= sub;
 }
 
 bool IPv6_Addr::operator>(const IPv6_Addr &ip) const {
-    if (as_u64i[1] > ip.as_u64i[1]) return true;
-    if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] > ip.as_u64i[0];
+    if (as_u128i.ms > ip.as_u128i.ms) return true;
+    if (as_u128i.ms == ip.as_u128i.ms) return as_u128i.ls > ip.as_u128i.ls;
     return false;
 }
 
 bool IPv6_Addr::operator<(const IPv6_Addr &ip) const {
-    if (as_u64i[1] < ip.as_u64i[1]) return true;
-    if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] < ip.as_u64i[0];
+    if (as_u128i.ms < ip.as_u128i.ms) return true;
+    if (as_u128i.ms == ip.as_u128i.ms) return as_u128i.ls < ip.as_u128i.ls;
     return false;
 }
 
 bool IPv6_Addr::operator>=(const IPv6_Addr &ip) const {
-    if (as_u64i[1] > ip.as_u64i[1]) return true;
-    if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] >= ip.as_u64i[0];
+    if (as_u128i.ms > ip.as_u128i.ms) return true;
+    if (as_u128i.ms == ip.as_u128i.ms) return as_u128i.ls >= ip.as_u128i.ls;
     return false;
 }
 
 bool IPv6_Addr::operator<=(const IPv6_Addr &ip) const {
-    if (as_u64i[1] < ip.as_u64i[1]) return true;
-    if (as_u64i[1] == ip.as_u64i[1]) return as_u64i[0] <= ip.as_u64i[0];
+    if (as_u128i.ms < ip.as_u128i.ms) return true;
+    if (as_u128i.ms == ip.as_u128i.ms) return as_u128i.ls <= ip.as_u128i.ls;
     return false;
 }
 
@@ -588,22 +595,22 @@ IPv6_Addr IPv6_Addr::operator<<(u32i shift) const {
     IPv6_Addr ret {*this};
     if (shift > 128) shift = 128;
     if ((shift > 64) && (shift < 128)) {
-        ret.as_u64i[1] = 0;
-        ret.as_u64i[1] |= (ret.as_u64i[0] << (shift - 64));
-        ret.as_u64i[0] = 0;
+        ret.as_u128i.ms = 0;
+        ret.as_u128i.ms |= (ret.as_u128i.ls << (shift - 64));
+        ret.as_u128i.ls = 0;
     } else {
         if (shift == 128) {
-            ret.as_u64i[1] = 0;
-            ret.as_u64i[0] = 0;
+            ret.as_u128i.ms = 0;
+            ret.as_u128i.ls = 0;
         } else {
             if (shift == 64) {
-                ret.as_u64i[1] = ret.as_u64i[0];
-                ret.as_u64i[0] = 0;
+                ret.as_u128i.ms = ret.as_u128i.ls;
+                ret.as_u128i.ls = 0;
             } else {
                 if (shift != 0) {
-                    ret.as_u64i[1] <<= shift;
-                    ret.as_u64i[1] |= (ret.as_u64i[0] >> (64 - shift));
-                    ret.as_u64i[0] <<= shift;
+                    ret.as_u128i.ms <<= shift;
+                    ret.as_u128i.ms |= (ret.as_u128i.ls >> (64 - shift));
+                    ret.as_u128i.ls <<= shift;
                 }
             }
         }
@@ -614,22 +621,22 @@ IPv6_Addr IPv6_Addr::operator<<(u32i shift) const {
 void IPv6_Addr::operator<<=(u32i shift) {
     if (shift > 128) shift = 128;
     if ((shift > 64) && (shift < 128)) {
-        as_u64i[1] = 0;
-        as_u64i[1] |= (as_u64i[0] << (shift - 64));
-        as_u64i[0] = 0;
+        as_u128i.ms = 0;
+        as_u128i.ms |= (as_u128i.ls << (shift - 64));
+        as_u128i.ls = 0;
     } else {
         if (shift == 128) {
-            as_u64i[1] = 0;
-            as_u64i[0] = 0;
+            as_u128i.ms = 0;
+            as_u128i.ls = 0;
         } else {
             if (shift == 64) {
-                as_u64i[1] = as_u64i[0];
-                as_u64i[0] = 0;
+                as_u128i.ms = as_u128i.ls;
+                as_u128i.ls = 0;
             } else {
                 if (shift != 0) {
-                    as_u64i[1] <<= shift;
-                    as_u64i[1] |= (as_u64i[0] >> (64 - shift));
-                    as_u64i[0] <<= shift;
+                    as_u128i.ms <<= shift;
+                    as_u128i.ms |= (as_u128i.ls >> (64 - shift));
+                    as_u128i.ls <<= shift;
                 }
             }
         }
@@ -640,22 +647,22 @@ IPv6_Addr IPv6_Addr::operator>>(u32i shift) const {
     IPv6_Addr ret {*this};
     if (shift > 128) shift = 128;
     if ((shift > 64) && (shift < 128)) {
-        ret.as_u64i[0] = 0;
-        ret.as_u64i[0] |= (ret.as_u64i[1] >> (shift - 64));
-        ret.as_u64i[1] = 0;
+        ret.as_u128i.ls = 0;
+        ret.as_u128i.ls |= (ret.as_u128i.ms >> (shift - 64));
+        ret.as_u128i.ms = 0;
     } else {
         if (shift == 128) {
-            ret.as_u64i[1] = 0;
-            ret.as_u64i[0] = 0;
+            ret.as_u128i.ms = 0;
+            ret.as_u128i.ls = 0;
         } else {
             if (shift == 64) {
-                ret.as_u64i[0] = ret.as_u64i[1];
-                ret.as_u64i[1] = 0;
+                ret.as_u128i.ls = ret.as_u128i.ms;
+                ret.as_u128i.ms = 0;
             } else {
                 if (shift != 0) {
-                    ret.as_u64i[0] >>= shift;
-                    ret.as_u64i[0] |= (ret.as_u64i[1] << (64 - shift));
-                    ret.as_u64i[1] >>= shift;
+                    ret.as_u128i.ls >>= shift;
+                    ret.as_u128i.ls |= (ret.as_u128i.ms << (64 - shift));
+                    ret.as_u128i.ms >>= shift;
                 }
             }
         }
@@ -666,26 +673,36 @@ IPv6_Addr IPv6_Addr::operator>>(u32i shift) const {
 void IPv6_Addr::operator>>=(u32i shift) {
     if (shift > 128) shift = 128;
     if ((shift > 64) && (shift < 128)) {
-        as_u64i[0] = 0;
-        as_u64i[0] |= (as_u64i[1] >> (shift - 64));
-        as_u64i[1] = 0;
+        as_u128i.ls = 0;
+        as_u128i.ls |= (as_u128i.ms >> (shift - 64));
+        as_u128i.ms = 0;
     } else {
         if (shift == 128) {
-            as_u64i[1] = 0;
-            as_u64i[0] = 0;
+            as_u128i.ms = 0;
+            as_u128i.ls = 0;
         } else {
             if (shift == 64) {
-                as_u64i[0] = as_u64i[1];
-                as_u64i[1] = 0;
+                as_u128i.ls = as_u128i.ms;
+                as_u128i.ms = 0;
             } else {
                 if (shift != 0) {
-                    as_u64i[0] >>= shift;
-                    as_u64i[0] |= (as_u64i[1] << (64 - shift));
-                    as_u64i[1] >>= shift;
+                    as_u128i.ls >>= shift;
+                    as_u128i.ls |= (as_u128i.ms << (64 - shift));
+                    as_u128i.ms >>= shift;
                 }
             }
         }
     }
+}
+
+IPv6_Addr IPv6_Addr::operator/(u64i div) {
+    IPv6_Addr ret;
+    u64i remainder = 0;
+    ret.as_u128i.ms = as_u128i.ms / div;
+    remainder = as_u128i.ms % div;
+    cout << " remainder= " << remainder << endl;
+    ret.as_u128i.ls = as_u128i.ls / div + remainder * 128;
+    return ret;
 }
 
 string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) const {

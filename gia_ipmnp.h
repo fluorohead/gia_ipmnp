@@ -8,10 +8,16 @@
 
 using namespace std;
 
-using u64i = uint64_t;
-using u32i = uint32_t;
-using u16i = uint16_t;
 using u8i  = uint8_t;
+using u16i = uint16_t;
+using u32i = uint32_t;
+using u64i = uint64_t;
+
+struct u128i {
+    u64i ls;
+    u64i ms;
+    u128i(u64i _left, u64i _right) { ls = _right, ms = _left; };
+};
 
 class IPv4_Addr;
 class IPv6_Addr;
@@ -147,10 +153,10 @@ public:
     bool is_sdp_sap() const { return (as_u32i & 0xFFFF0000) == 0xE0020000; }; // 224.2/16 - SDP/SAP Block - RFC 5771
     bool is_glop_blk() const; // 233.0/16-233.251/16 - RFC 5771
     bool is_adm_scp_blk() const { return (as_u32i & 0xFF000000) == 0xEF000000; }; // 239/8 - Administratively Scoped Block - RFC 5771
-    bool is_ubm() const { return (as_u32i & 0xFF000000) == 0xEA000000; } // 234/8 - RFC 6034
-    bool is_ucast() const { return (as_u32i & 0xF0000000) != 0xE0000000; };
+    bool is_ubm() const { return (as_u32i & 0xFF000000) == 0xEA000000; } // 234/8 - Unicast-Prefix-Based Multicast - RFC 6034
+    bool is_ucast() const { return (as_u32i & 0xF0000000) != 0xE0000000; }; // Unicast
     bool is_as112() const { return (as_u32i & 0xFFFFFF00) == 0xC01FC400; }; // 192.31.196/24 - RFC 7535
-    bool is_global_ucast() const;
+    bool is_global_ucast() const; // Globally routed unicast
     bool is_shared() const { return (as_u32i & 0xFFC00000) == 0x64400000; }; // 100.64/10 - RFC 6598
     bool is_reserved() const { return (as_u32i & 0xF0000000) == 0xF0000000; }; // 240/4 - RFC 6890
     bool is_docum() const; // 192.0.2/24, 198.51.100/24, 203.0.113/24 - RFC 5737
@@ -159,6 +165,8 @@ public:
     bool is_dslite() const { return (as_u32i & 0xFFFFFFF8) == 0xC0000000; }; // 192/29 - RFC 6333, RFC 7335
     bool is_amt() const { return (as_u32i & 0xFFFFFF00) == 0xC034C100; }; // 92.52.193/24 - RFC 7450
     bool is_dirdeleg() const { return (as_u32i & 0xFFFFFF00) == 0xC0AF3000; }; // 192.175.48/24 - RFC 7534
+    bool is_even() const { return (as_u32i & 0b00000001) != 1; };
+    bool is_odd() const { return (as_u32i & 0b00000001) != 0; };
     IPv4_Addr operator+(u32i sum) const { return IPv4_Addr{as_u32i + sum}; };
     IPv4_Addr operator-(u32i sub) const { return IPv4_Addr{as_u32i - sub}; };
     void operator++(int val) { as_u32i++; };
@@ -195,34 +203,41 @@ public:
     u8i& operator[](u32i octet) { if (octet > 3) return garbage; return as_u8i[octet]; };
     const u8i& operator[](u32i octet) const { if (octet > 3) return garbage; return as_u8i[octet]; };
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
+    u32i operator%(u32i mod) { return as_u32i % mod; };
+    IPv4_Addr operator/(u32i div) { return as_u32i / div; };
 };
 
 class IPv6_Addr {
     bool getzg(u32i *beg, u32i *end) const; // finds longest group of zero-hextets
     bool show_ipv4 {true};
+    static inline u16i garbage;
 public:
     union {
-        u64i as_u64i[2]; // index [1] is MSB (left part), index [0] is LSB (right part), reversed order, not human readable
-        u32i as_u32i[4]; // same principe, not human readable
-        u16i as_u16i[8]; // same principe, not human readable
-        u8i  as_u8i[16]; // same principe, not human readable
+        u128i as_u128i;
+        u64i  as_u64i[2]; // index [1] is MSB (left part), index [0] is LSB (right part), reversed order, not human readable
+        u32i  as_u32i[4]; // same principe, not human readable
+        u16i  as_u16i[8]; // same principe, not human readable
+        u8i   as_u8i[16]; // same principe, not human readable
     };
-    IPv6_Addr() { as_u64i[1] = 0; as_u64i[0] = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
-    IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4 = true) { as_u64i[0] = right; as_u64i[1] = left; show_ipv4 = flag_show_ipv4; }
+    IPv6_Addr() { as_u128i.ms = 0; as_u128i.ls = 0; }; // all initializers have human readable order (from ms to ls), derived from symbolic notation of address, where most ms is MSB and most ls is LSB
+    IPv6_Addr(u64i left, u64i right) { as_u128i.ls = right; as_u128i.ms = left; }
+    IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4) { as_u128i.ls = right; as_u128i.ms = left; show_ipv4 = flag_show_ipv4; }
+    IPv6_Addr(u128i val) { as_u128i = val; };
     IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i xtt6, u16i xtt7, u16i xtt8);
-    IPv6_Addr(const u16i *arr);
+    IPv6_Addr(const u16i arr[8]);
+    IPv6_Addr(const array<u16i,8> &arr);
     IPv6_Addr(const string &ipstr) { *this = v6mnp::to_IPv6(ipstr); };
     string to_str(u32i fmt) const;
     string to_str() const { return to_str(v6mnp::what_fmt()); };
     array<u8i,16> to_media_tx() const;
-    bool is_unspec() const { return !(as_u64i[0] | as_u64i[1]); }; // ::1/128 - RFC 4291
-    bool is_loopback() const { return (as_u64i[0] | as_u64i[1]) == 1; }; // ::/128 - RFC 4291
+    bool is_unspec() const { return !(as_u128i.ls | as_u128i.ms); }; // ::1/128 - RFC 4291
+    bool is_loopback() const { return (as_u128i.ls | as_u128i.ms) == 1; }; // ::/128 - RFC 4291
     bool is_glob_ucast() const { return (as_u16i[v6mnp::xtt1] & 0xFFE0) == 0x2000; }; // 2000::/3 - RFC 3513
     bool is_mcast() const {return (as_u16i[v6mnp::xtt1] & 0xFF00) == 0xFF00; }; // ff00::/8 - RFC 3513
     bool is_uniq_local() const { return (as_u16i[v6mnp::xtt1] & 0xFE00) == 0xFC00; }; // fc00::/7 - RFC 4193
     bool is_link_local() const { return (as_u16i[v6mnp::xtt1] & 0xFFC0) == 0xFE80; }; // fe80::/10 - RFC 4862
     bool is_mapped_ipv4() const { return as_u16i[v6mnp::xtt6] == 0xFFFF; }; // ::ffff:0:0/96 - RFC 4291
-    bool is_wknown_pfx() const { return (as_u64i[1] == 0x0064FF9B00000000) && (as_u32i[1] == 0x00000000); } // 64:ff9b::/96 - RFC 6052
+    bool is_wknown_pfx() const { return (as_u128i.ms == 0x0064FF9B00000000) && (as_u32i[1] == 0x00000000); } // 64:ff9b::/96 - RFC 6052
     bool is_lu_trans() const { return (as_u32i[3] == 0x0064FF9B) && (as_u16i[v6mnp::xtt3] == 0x0001); }; // 64:ff9b:1::/48  - RFC 8215
     bool is_ietf() const { return (as_u32i[3] & 0xFFFFFE) == 0x20010000; }; // 2001:0::/23 - RFC2928
     bool is_teredo() const { return as_u32i[3] == 0x20010000; }; // 2001:0::/32 - RFC4380
@@ -232,6 +247,8 @@ public:
     bool is_orchv2() const { return (as_u32i[3] & 0xFFFFFFF0) == 0x20010020; }; // 2001:20::/28 - RFC 7343
     bool is_docum() const { return as_u32i[3] == 0x20010DB8; } // 2001:db8::/32 - RFC 3849
     bool is_6to4() const { return as_u16i[v6mnp::xtt1] == 0x2002; }; // 2002::/16 - RFC 3056
+    bool is_even() const { return (as_u128i.ls & 0b00000001) != 1; };
+    bool is_odd() const { return (as_u128i.ls & 0b00000001) != 0; };
     void map_ipv4(u32i ipv4) { as_u16i[v6mnp::xtt6] = 0xFFFF; as_u32i[0] = ipv4; };
     void map_ipv4(IPv4_Addr ipv4) { map_ipv4(ipv4()); };
     void setflag_show_ipv4() { show_ipv4 = true; };
@@ -240,25 +257,32 @@ public:
     IPv6_Addr operator+(u64i sum) const;
     IPv6_Addr operator-(const IPv6_Addr &sub) const;
     IPv6_Addr operator-(u64i sub) const;
-    void operator++(int val) { if (as_u64i[0] == 0xFFFFFFFFFFFFFFFF) as_u64i[1]++; as_u64i[0]++; };
-    void operator--(int val) { if (as_u64i[0] == 0) as_u64i[1]--; as_u64i[0]--; };
+    void operator++(int val) { if (as_u128i.ls == 0xFFFFFFFFFFFFFFFF) as_u128i.ms++; as_u128i.ls++; };
+    void operator--(int val) { if (as_u128i.ls == 0) as_u128i.ms--; as_u128i.ls--; };
     void operator+=(const IPv6_Addr &sum);
     void operator+=(u64i sum);
     void operator-=(const IPv6_Addr &sub);
     void operator-=(u64i sub);
-    IPv6_Addr operator&(const IPv6_Addr &bitmask) const { return IPv6_Addr{as_u64i[1] & bitmask.as_u64i[1], as_u64i[0] & bitmask.as_u64i[0]}; };
-    void operator&=(const IPv6_Addr &bitmask) { as_u64i[1] &= bitmask.as_u64i[1]; as_u64i[0] &= bitmask.as_u64i[0]; };
-    bool operator==(const IPv6_Addr &ip) const { return (as_u64i[1] == ip.as_u64i[1]) && (as_u64i[0] == ip.as_u64i[0]); };
-    bool operator!=(const IPv6_Addr &ip) const { return (as_u64i[1] != ip.as_u64i[1]) || (as_u64i[0] != ip.as_u64i[0]); };
-    bool operator>(const IPv6_Addr &ip) const ;
-    bool operator<(const IPv6_Addr &ip) const ;
-    bool operator>=(const IPv6_Addr &ip) const ;
-    bool operator<=(const IPv6_Addr &ip) const ;
-    IPv6_Addr operator<<(u32i shift) const ;
+    IPv6_Addr operator&(const IPv6_Mask &bitmask) const { return IPv6_Addr{as_u128i.ms & bitmask.as_u128i.ms, as_u128i.ls & bitmask.as_u128i.ls}; };
+    void operator&=(const IPv6_Mask &bitmask) { as_u128i.ms &= bitmask.as_u128i.ms; as_u128i.ls &= bitmask.as_u128i.ls; };
+    bool operator==(const IPv6_Addr &ip) const { return (as_u128i.ms == ip.as_u128i.ms) && (as_u128i.ls == ip.as_u128i.ls); };
+    IPv6_Addr operator|(const IPv6_Mask &bitmask) const { return IPv6_Addr{as_u128i.ms | bitmask.as_u128i.ms, as_u128i.ls | bitmask.as_u128i.ls}; };
+    void operator|=(const IPv6_Mask &bitmask) { as_u128i.ms |= bitmask.as_u128i.ms; as_u128i.ls |= bitmask.as_u128i.ls; };
+    bool operator!=(const IPv6_Addr &ip) const { return (as_u128i.ms != ip.as_u128i.ms) || (as_u128i.ls != ip.as_u128i.ls); };
+    bool operator>(const IPv6_Addr &ip) const;
+    bool operator<(const IPv6_Addr &ip) const;
+    bool operator>=(const IPv6_Addr &ip) const;
+    bool operator<=(const IPv6_Addr &ip) const;
+    IPv6_Addr operator<<(u32i shift) const;
     void operator<<=(u32i shift);
-    IPv6_Addr operator>>(u32i shift) const ;
+    IPv6_Addr operator>>(u32i shift) const;
     void operator>>=(u32i shift);
-    IPv6_Addr operator~(){ return IPv6_Addr{~as_u64i[1], ~as_u64i[0]}; };
+    u128i operator()() const { return as_u128i; };
+    u16i& operator[](u32i xtet) { if (xtet > 7) return garbage; return as_u16i[xtet]; };
+    const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
+    IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
+    //u128i operator%(u64i mod) { return as_u128i % mod; };
+    IPv6_Addr operator/(u64i div);
 };
 
 
