@@ -695,16 +695,6 @@ void IPv6_Addr::operator>>=(u32i shift) {
     }
 }
 
-// IPv6_Addr IPv6_Addr::operator/(u64i div) {
-//     IPv6_Addr ret;
-//     u64i rmndr = 0;
-//     ret.as_u128i.ms = as_u128i.ms / div;
-//     rmndr = as_u128i.ms % div;
-//     cout << " remainder= " << rmndr << endl;
-//     ret.as_u128i.ls = as_u128i.ls / div + rmndr * 128;
-//     return ret;
-// }
-
 string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) const {
     string ret;
     ret.reserve(18);

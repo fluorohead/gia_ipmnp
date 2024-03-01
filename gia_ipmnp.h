@@ -24,6 +24,7 @@ class IPv6_Addr;
 class MAC_Addr;
 using IPv4_Mask = IPv4_Addr;
 using IPv6_Mask = IPv6_Addr;
+using MAC_Mask  = MAC_Addr;
 
 class v4mnp {
 public:
@@ -80,6 +81,7 @@ public:
 };
 
 class MAC_Addr {
+    static inline u8i garbage;
 public:
     union {
         u64i as_48bits;
@@ -102,10 +104,16 @@ public:
     bool is_bcast() const { return as_48bits == 0xFFFFFFFFFFFF; };
     bool is_uaa() const { return (as_u8i[macmnp::oct1] & 0b00000010) ? false : true; };
     bool is_laa() const { return !is_uaa(); };
-    MAC_Addr operator&(u64i bitmask) const { return MAC_Addr{as_48bits & bitmask}; };
-    MAC_Addr operator&(const MAC_Addr &bitmask) const { return MAC_Addr{as_48bits & bitmask.as_48bits}; };
+    bool is_even() const { return (as_48bits & 1) != 1; };
+    bool is_odd() const { return (as_48bits & 1) != 0; };
+    MAC_Addr operator&(u64i bitmask) const { return {as_48bits & bitmask}; };
+    MAC_Addr operator&(const MAC_Addr &bitmask) const { return {as_48bits & bitmask.as_48bits}; };
     void operator&=(u64i bitmask) { as_48bits &= bitmask; };
-    void operator&=(MAC_Addr &bitmask) { as_48bits &= bitmask.as_48bits; };
+    void operator&=(MAC_Mask &bitmask) { as_48bits &= bitmask.as_48bits; };
+    MAC_Addr operator|(u64i val) const { return {as_48bits | val}; };
+    MAC_Addr operator|(const MAC_Addr &val) const { return {as_48bits | val.as_48bits}; };
+    void operator|=(u64i val) { as_48bits |= val; };
+    void operator|=(MAC_Addr &val) { as_48bits |= val.as_48bits; };
     bool operator>(u64i _48bits) const { return as_48bits > _48bits; };
     bool operator>(MAC_Addr mac) const { return as_48bits > mac.as_48bits; };
     bool operator<(u64i _48bits) const { return as_48bits < _48bits; };
@@ -119,6 +127,11 @@ public:
     bool operator!=(u64i _48bits) const { return as_48bits != _48bits; };
     bool operator!=(MAC_Addr mac) const { return as_48bits != mac.as_48bits; };
     MAC_Addr operator~() { return MAC_Addr{~as_48bits}; };
+    u64i operator()() const { return as_48bits; };
+    u8i& operator[](u32i octet) { if (octet > 5) return garbage; return as_u8i[octet]; };
+    const u8i operator[](u32i octet) const { if (octet > 5) return garbage; return as_u8i[octet]; };
+    u64i operator%(u64i mod) { return as_48bits % mod; };
+    MAC_Addr operator/(u64i div) { return as_48bits / div; };
 };
 
 class IPv4_Addr {
@@ -165,8 +178,8 @@ public:
     bool is_dslite() const { return (as_u32i & 0xFFFFFFF8) == 0xC0000000; }; // 192/29 - RFC 6333, RFC 7335
     bool is_amt() const { return (as_u32i & 0xFFFFFF00) == 0xC034C100; }; // 92.52.193/24 - RFC 7450
     bool is_dirdeleg() const { return (as_u32i & 0xFFFFFF00) == 0xC0AF3000; }; // 192.175.48/24 - RFC 7534
-    bool is_even() const { return (as_u32i & 0b00000001) != 1; };
-    bool is_odd() const { return (as_u32i & 0b00000001) != 0; };
+    bool is_even() const { return (as_u32i & 1) != 1; };
+    bool is_odd() const { return (as_u32i & 1) != 0; };
     IPv4_Addr operator+(u32i sum) const { return IPv4_Addr{as_u32i + sum}; };
     IPv4_Addr operator-(u32i sub) const { return IPv4_Addr{as_u32i - sub}; };
     void operator++(int val) { as_u32i++; };
@@ -185,8 +198,8 @@ public:
     void operator&=(const IPv4_Mask &bitmask) { as_u32i &= bitmask.as_u32i; };
     IPv4_Addr operator|(u32i bitmask) const { return IPv4_Addr{as_u32i | bitmask}; };
     IPv4_Addr operator|(IPv4_Mask bitmask) const { return IPv4_Addr{as_u32i | bitmask.as_u32i}; };
-    void operator|=(u32i bitmask) { as_u32i |= bitmask; };
-    void operator|=(const IPv4_Mask &bitmask) { as_u32i |= bitmask.as_u32i; };
+    void operator|=(u32i val) { as_u32i |= val; };
+    void operator|=(const IPv4_Addr &val) { as_u32i |= val.as_u32i; };
     bool operator>(u32i ip) const { return as_u32i > ip; };
     bool operator>(const IPv4_Addr &ip) const { return as_u32i > ip.as_u32i; };
     bool operator<(u32i ip) const { return as_u32i < ip; };
@@ -247,8 +260,8 @@ public:
     bool is_orchv2() const { return (as_u32i[3] & 0xFFFFFFF0) == 0x20010020; }; // 2001:20::/28 - RFC 7343
     bool is_docum() const { return as_u32i[3] == 0x20010DB8; } // 2001:db8::/32 - RFC 3849
     bool is_6to4() const { return as_u16i[v6mnp::xtt1] == 0x2002; }; // 2002::/16 - RFC 3056
-    bool is_even() const { return (as_u128i.ls & 0b00000001) != 1; };
-    bool is_odd() const { return (as_u128i.ls & 0b00000001) != 0; };
+    bool is_even() const { return (as_u128i.ls & 1) != 1; };
+    bool is_odd() const { return (as_u128i.ls & 1) != 0; };
     void map_ipv4(u32i ipv4) { as_u16i[v6mnp::xtt6] = 0xFFFF; as_u32i[0] = ipv4; };
     void map_ipv4(IPv4_Addr ipv4) { map_ipv4(ipv4()); };
     void setflag_show_ipv4() { show_ipv4 = true; };
@@ -266,8 +279,8 @@ public:
     IPv6_Addr operator&(const IPv6_Mask &bitmask) const { return IPv6_Addr{as_u128i.ms & bitmask.as_u128i.ms, as_u128i.ls & bitmask.as_u128i.ls}; };
     void operator&=(const IPv6_Mask &bitmask) { as_u128i.ms &= bitmask.as_u128i.ms; as_u128i.ls &= bitmask.as_u128i.ls; };
     bool operator==(const IPv6_Addr &ip) const { return (as_u128i.ms == ip.as_u128i.ms) && (as_u128i.ls == ip.as_u128i.ls); };
-    IPv6_Addr operator|(const IPv6_Mask &bitmask) const { return IPv6_Addr{as_u128i.ms | bitmask.as_u128i.ms, as_u128i.ls | bitmask.as_u128i.ls}; };
-    void operator|=(const IPv6_Mask &bitmask) { as_u128i.ms |= bitmask.as_u128i.ms; as_u128i.ls |= bitmask.as_u128i.ls; };
+    IPv6_Addr operator|(const IPv6_Addr &val) const { return IPv6_Addr{as_u128i.ms | val.as_u128i.ms, as_u128i.ls | val.as_u128i.ls}; };
+    void operator|=(const IPv6_Addr &val) { as_u128i.ms |= val.as_u128i.ms; as_u128i.ls |= val.as_u128i.ls; };
     bool operator!=(const IPv6_Addr &ip) const { return (as_u128i.ms != ip.as_u128i.ms) || (as_u128i.ls != ip.as_u128i.ls); };
     bool operator>(const IPv6_Addr &ip) const;
     bool operator<(const IPv6_Addr &ip) const;
@@ -281,8 +294,6 @@ public:
     u16i& operator[](u32i xtet) { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
-    //u128i operator%(u64i mod) { return as_u128i % mod; };
-    //IPv6_Addr operator/(u64i div);
 };
 
 
