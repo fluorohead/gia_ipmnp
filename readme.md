@@ -631,7 +631,7 @@ garbage at index [13] = 0
     mac[100500] = 90;
     cout << mac.to_str() << endl;
     
-Результат :
+Результат :  
 104  
 147  
 128  
