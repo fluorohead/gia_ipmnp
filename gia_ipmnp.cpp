@@ -112,9 +112,9 @@ IPv4_Addr v4mnp::to_IPv4(const string &ipstr) {
 }
 
 u32i v4mnp::mask_len(u32i bitmask) {
-    u32i zrcnt {0};
-    for ( ; zrcnt < 32; zrcnt++ ) if (((bitmask >> zrcnt) & 1) == 1) break;
-    return 32 - zrcnt;
+    u32i shift {0};
+    for ( ; shift < 32; shift++ ) if ((bitmask >> shift) & 1) break;
+    return 32 - shift;
 }
 
 IPv4_Mask v4mnp::gen_mask(u32i mlen) {
@@ -373,13 +373,24 @@ bool  IPv4_Addr::is_adhoc_blk2() const {
     return false;
 }
 
-     // 224.3/16-224.4/16 - AD-HOC Block II - RFC 5771
-
 bool IPv4_Addr::is_private() const {
     if ((as_u32i & 0xFF000000) == 0x0A000000) return true; // 10/8
     if ((as_u32i & 0xFFF00000) == 0xAC100000) return true; // 172.(16-31)/16
     if ((as_u32i & 0xFFFF0000) == 0xC0A80000) return true; // 192.168/16
     return false;
+}
+
+bool IPv4_Addr::can_be_mask() const {
+    u32i shift {0};
+    for ( ; shift < 32; shift++ ) { // looking for binary ones
+        if ((as_u32i >> shift) & 1) break;
+    }
+    if (shift != 32) { // looking for binary zeros
+        for ( ; shift < 32; shift++)
+            if (!((as_u32i >> shift) & 1))
+                return false;
+    }
+    return true;
 }
 
 bool IPv4_Addr::is_docum() const {
@@ -390,13 +401,13 @@ bool IPv4_Addr::is_docum() const {
 }
 
 IPv6_Addr::IPv6_Addr(const u16i arr[8]) {
-    for (u32i idx = 0; idx <= 7; idx++){
+    for (u32i idx = 0; idx <= 7; idx++) {
         as_u16i[idx] = arr[7 - idx];
     }
 }
 
 IPv6_Addr::IPv6_Addr(const array<u16i,8> &arr) {
-    for (u32i idx = 0; idx <= 7; idx++){
+    for (u32i idx = 0; idx <= 7; idx++) {
         as_u16i[idx] = arr[7 - idx];
     }
 }

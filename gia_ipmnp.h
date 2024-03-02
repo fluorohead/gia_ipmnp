@@ -181,6 +181,7 @@ public:
     bool is_dirdeleg() const { return (as_u32i & 0xFFFFFF00) == 0xC0AF3000; }; // 192.175.48/24 - RFC 7534
     bool is_even() const { return (as_u32i & 1) != 1; };
     bool is_odd() const { return (as_u32i & 1) != 0; };
+    bool can_be_mask() const;
     IPv4_Addr operator+(u32i sum) const { return IPv4_Addr{as_u32i + sum}; };
     IPv4_Addr operator-(u32i sub) const { return IPv4_Addr{as_u32i - sub}; };
     void operator++(int val) { as_u32i++; };
