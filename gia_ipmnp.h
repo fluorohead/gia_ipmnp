@@ -103,8 +103,8 @@ public:
     bool is_ucast() const { return (as_u8i[macmnp::oct1] & 0b00000001) ? false : true; };
     bool is_mcast() const { return !is_ucast(); };
     bool is_bcast() const { return as_48bits == 0xFFFFFFFFFFFF; };
-    bool is_uaa() const { return (as_u8i[macmnp::oct1] & 0b00000010) ? false : true; };
-    bool is_laa() const { return !is_uaa(); };
+    bool is_uaa() const { return (as_u8i[macmnp::oct1] & 0b00000010) ? false : true; }; // universally administered addresses
+    bool is_laa() const { return !is_uaa(); }; // locally administered addresses
     bool is_even() const { return (as_48bits & 1) != 1; };
     bool is_odd() const { return (as_48bits & 1) != 0; };
     MAC_Addr operator&(u64i bitmask) const { return {as_48bits & bitmask}; };
