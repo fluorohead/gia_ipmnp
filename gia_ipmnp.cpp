@@ -1,5 +1,6 @@
 #include "gia_ipmnp.h"
 #include <iostream>
+#include <memory.h>
 
 using namespace std;
 
@@ -487,6 +488,7 @@ string IPv6_Addr::to_str(u32i fmt) const {
     if ((fmt & v6mnp::LEADZRS_VIEW) != v6mnp::LEADZRS_VIEW) { // deleting leading zeroes in each hextet
         for (u32i idx = 0; idx < 8; idx++) {
             memcpy(&(full[idx][0]), &(full[idx][leadZr[idx]]), (6 - leadZr[idx]));
+
         }
     }
     bool v4 = (show_ipv4 && (as_u16i[v6mnp::xtt6] == 0xFFFF)) ? true : false;
