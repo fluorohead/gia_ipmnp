@@ -44,7 +44,7 @@ class v6mnp {
     static u32i word_cnt(const string &text, const string &patt); // word counter
     static inline u32i _fmt = 0; // IETF
 public:
-    static const u32i IETF = 0, Upper = 1, LeadZrs = 2, Expand = 4, Full = 7; // format flags
+    static const u32i IETF_VIEW = 0, UPPER_VIEW = 1, LEADZRS_VIEW = 2, EXPAND_VIEW = 4, FULL_VIEW = 7; // format flags
     static const char hexUpp[];  // "0123456789ABCDEF"
     static const char hexLow[];  // "0123456789abcdef"
     static const char hexPerm[]; // "0123456789abcdefABCDEF"
@@ -179,8 +179,8 @@ public:
     bool is_dslite() const { return (as_u32i & 0xFFFFFFF8) == 0xC0000000; }; // 192/29 - RFC 6333, RFC 7335
     bool is_amt() const { return (as_u32i & 0xFFFFFF00) == 0xC034C100; }; // 92.52.193/24 - RFC 7450
     bool is_dirdeleg() const { return (as_u32i & 0xFFFFFF00) == 0xC0AF3000; }; // 192.175.48/24 - RFC 7534
-    bool is_even() const { return (as_u32i & 1) != 1; };
-    bool is_odd() const { return (as_u32i & 1) != 0; };
+    bool is_even() const { return !(as_u32i & 1); };
+    bool is_odd() const { return as_u32i & 1; };
     bool can_be_mask() const;
     IPv4_Addr operator+(u32i sum) const { return IPv4_Addr{as_u32i + sum}; };
     IPv4_Addr operator-(u32i sub) const { return IPv4_Addr{as_u32i - sub}; };
@@ -262,8 +262,9 @@ public:
     bool is_orchv2() const { return (as_u32i[3] & 0xFFFFFFF0) == 0x20010020; }; // 2001:20::/28 - RFC 7343
     bool is_docum() const { return as_u32i[3] == 0x20010DB8; } // 2001:db8::/32 - RFC 3849
     bool is_6to4() const { return as_u16i[v6mnp::xtt1] == 0x2002; }; // 2002::/16 - RFC 3056
-    bool is_even() const { return (as_u128i.ls & 1) != 1; };
-    bool is_odd() const { return (as_u128i.ls & 1) != 0; };
+    bool is_even() const { return !(as_u128i.ls & 1); };
+    bool is_odd() const { return as_u128i.ls & 1; };
+    bool can_be_mask() const;
     void map_ipv4(u32i ipv4) { as_u16i[v6mnp::xtt6] = 0xFFFF; as_u32i[0] = ipv4; };
     void map_ipv4(IPv4_Addr ipv4) { map_ipv4(ipv4()); };
     void setflag_show_ipv4() { show_ipv4 = true; };

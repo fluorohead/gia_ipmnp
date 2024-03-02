@@ -465,7 +465,7 @@ bool IPv6_Addr::getzg(u32i *beg, u32i *end) const {
 }
 
 string IPv6_Addr::to_str(u32i fmt) const {
-    const char *useSet = ((fmt & v6mnp::Upper) == v6mnp::Upper) ? v6mnp::hexUpp : v6mnp::hexLow;
+    const char *useSet = ((fmt & v6mnp::UPPER_VIEW) == v6mnp::UPPER_VIEW) ? v6mnp::hexUpp : v6mnp::hexLow;
     string ret;
     ret.reserve(46);
     char full[8][6] {"0000:", "0000:", "0000:", "0000:", "0000:", "0000:", "0000:", "0000\0"};
@@ -484,7 +484,7 @@ string IPv6_Addr::to_str(u32i fmt) const {
             };
         } while (mul > 0);
     }
-    if ((fmt & v6mnp::LeadZrs) != v6mnp::LeadZrs) { // deleting leading zeroes in each hextet
+    if ((fmt & v6mnp::LEADZRS_VIEW) != v6mnp::LEADZRS_VIEW) { // deleting leading zeroes in each hextet
         for (u32i idx = 0; idx < 8; idx++) {
             memcpy(&(full[idx][0]), &(full[idx][leadZr[idx]]), (6 - leadZr[idx]));
         }
@@ -492,7 +492,7 @@ string IPv6_Addr::to_str(u32i fmt) const {
     bool v4 = (show_ipv4 && (as_u16i[v6mnp::xtt6] == 0xFFFF)) ? true : false;
     u32i lastIdx = (v4) ? 2 : 0;
     u32i izg, ezg; // initial and ending repeating-zeroes group of hextets
-    if (((fmt & v6mnp::Expand) != v6mnp::Expand) && getzg(&izg, &ezg)) { // collapsing repeating zeroes group
+    if (((fmt & v6mnp::EXPAND_VIEW) != v6mnp::EXPAND_VIEW) && getzg(&izg, &ezg)) { // collapsing repeating zeroes group
         u32i idx {8};
         do {
             idx--;
@@ -524,6 +524,29 @@ array<u8i,16> IPv6_Addr::to_media_tx() const {
         ret[15 - idx] = as_u8i[idx];
     }
     return ret;
+}
+
+bool IPv6_Addr::can_be_mask() const {
+    u32i shift {0};
+    for ( ; shift < 64; shift++ ) { // looking for binary ones in least signif. part
+        if ((as_u128i.ls >> shift) & 1) break;
+    }
+    if (shift != 64) { // looking for binary zeros in least signif. part
+        for ( ; shift < 64; shift++)
+            if (!((as_u128i.ls >> shift) & 1))
+                return false;
+    }
+    // here, if no binary ones was found in least signif. part
+    shift = 0;
+    for ( ; shift < 64; shift++ ) { // looking for binary ones in most signif. part
+        if ((as_u128i.ms >> shift) & 1) break;
+    }
+    if (shift != 64) { // looking for binary zeros in most signif. part
+        for ( ; shift < 64; shift++)
+            if (!((as_u128i.ms >> shift) & 1))
+                return false;
+    }
+    return true;
 }
 
 IPv6_Addr IPv6_Addr::operator+(const IPv6_Addr &sum) const {
