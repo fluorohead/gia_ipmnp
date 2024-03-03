@@ -86,13 +86,13 @@ class MAC_Addr {
         u8i  as_u8i[8]; // reversed order, not human readable
     };
     static inline u8i garbage;
+    void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
 public:
     MAC_Addr() { as_48bits = 0; };
     MAC_Addr(u64i _48bits) { as_48bits = _48bits; fix(); };
     MAC_Addr(u32i oui, u32i nic) { as_48bits = oui; as_48bits = ((as_48bits << 24) & 0xFFFFFF000000) | (nic & 0xFFFFFF); fix(); };
     MAC_Addr(const string &macstr, char sep, u32i grp_len) { as_48bits = macmnp::to_48bits(macstr, sep, grp_len); };
     MAC_Addr(const string &macstr) { as_48bits = macmnp::to_48bits(macstr, macmnp::what_sep(), macmnp::what_grp_len()); };
-    void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
     string to_str(char sep, u32i grp_len, bool caps) const;
     string to_str() const { return to_str(macmnp::what_sep(), macmnp::what_grp_len(), macmnp::what_caps()); };
     array<u8i,6> to_media_tx() const ;
