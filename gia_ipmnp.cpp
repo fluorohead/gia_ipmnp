@@ -830,7 +830,7 @@ MAC_Addr macmnp::to_MAC(const string &macstr) {
 }
 
 MAC_Addr macmnp::gen_mcast(const IPv4_Addr &ip) {
-    return MAC_Addr{0x01005E, ip() & 0x007FFFFF};
+    return MAC_Addr{0x01005E, ip.as_u32i & 0x007FFFFF};
 }
 
 MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip) {

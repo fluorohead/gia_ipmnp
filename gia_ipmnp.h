@@ -81,12 +81,12 @@ public:
 };
 
 class MAC_Addr {
-    static inline u8i garbage;
-public:
     union {
         u64i as_48bits;
         u8i  as_u8i[8]; // reversed order, not human readable
     };
+    static inline u8i garbage;
+public:
     MAC_Addr() { as_48bits = 0; };
     MAC_Addr(u64i _48bits) { as_48bits = _48bits; fix(); };
     MAC_Addr(u32i oui, u32i nic) { as_48bits = oui; as_48bits = ((as_48bits << 24) & 0xFFFFFF000000) | (nic & 0xFFFFFF); fix(); };
@@ -133,15 +133,19 @@ public:
     const u8i operator[](u32i octet) const { if (octet > 5) return garbage; return as_u8i[octet]; };
     u64i operator%(u64i mod) { return as_48bits % mod; };
     MAC_Addr operator/(u64i div) { return as_48bits / div; };
+    friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
+    friend bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret);
+    friend u64i macmnp::to_48bits(const string &macstr, char sep, u32i grp_len);
+    friend u64i macmnp::to_48bits(const string &macstr);
 };
 
 class IPv4_Addr {
-    static inline u8i garbage;
-public:
     union {
         u32i as_u32i;
         u8i  as_u8i[4]; // index [3] is MSB, index [0] is LSB, reversed order, not human readable
     };
+    static inline u8i garbage;
+public:
     IPv4_Addr() { as_u32i = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
     IPv4_Addr(u32i val) { as_u32i = val; };
     IPv4_Addr(u8i oct1, u8i oct2, u8i oct3, u8i oct4);
@@ -220,13 +224,12 @@ public:
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
     u32i operator%(u32i mod) { return as_u32i % mod; };
     IPv4_Addr operator/(u32i div) { return as_u32i / div; };
+    friend bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret);
+    friend bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret);
+    friend MAC_Addr macmnp::gen_mcast(const IPv4_Addr &ip);
 };
 
 class IPv6_Addr {
-    bool getzg(u32i *beg, u32i *end) const; // finds longest group of zero-hextets
-    bool show_ipv4 {true};
-    static inline u16i garbage;
-public:
     union {
         u128i as_u128i;
         u64i  as_u64i[2]; // index [1] is MSB (left part), index [0] is LSB (right part), reversed order, not human readable
@@ -234,6 +237,10 @@ public:
         u16i  as_u16i[8]; // same principe, not human readable
         u8i   as_u8i[16]; // same principe, not human readable
     };
+    static inline u16i garbage;
+    bool getzg(u32i *beg, u32i *end) const; // finds longest group of zero-hextets
+    bool show_ipv4 {true};
+public:
     IPv6_Addr() { as_u128i.ms = 0; as_u128i.ls = 0; }; // all initializers have human readable order (from ms to ls), derived from symbolic notation of address, where most ms is MSB and most ls is LSB
     IPv6_Addr(u64i left, u64i right) { as_u128i.ls = right; as_u128i.ms = left; }
     IPv6_Addr(u64i left, u64i right, bool flag_show_ipv4) { as_u128i.ls = right; as_u128i.ms = left; show_ipv4 = flag_show_ipv4; }
@@ -297,6 +304,9 @@ public:
     u16i& operator[](u32i xtet) { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
+    friend bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret);
+    friend u32i v6mnp::mask_len(const IPv6_Mask &mask);
+    friend MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip);
 };
 
 
