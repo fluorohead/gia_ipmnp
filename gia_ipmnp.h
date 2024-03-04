@@ -133,6 +133,7 @@ public:
     const u8i operator[](u32i octet) const { if (octet > 5) return garbage; return as_u8i[octet]; };
     u64i operator%(u64i mod) { return as_48bits % mod; };
     MAC_Addr operator/(u64i div) { return as_48bits / div; };
+    operator u64i () { return as_48bits; };
     friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
     friend bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret);
     friend u64i macmnp::to_48bits(const string &macstr, char sep, u32i grp_len);
@@ -224,6 +225,7 @@ public:
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
     u32i operator%(u32i mod) { return as_u32i % mod; };
     IPv4_Addr operator/(u32i div) { return as_u32i / div; };
+    operator u32i () { return as_u32i; };
     friend bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret);
     friend bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret);
     friend MAC_Addr macmnp::gen_mcast(const IPv4_Addr &ip);
@@ -304,6 +306,7 @@ public:
     u16i& operator[](u32i xtet) { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
+    operator u128i () { return as_u128i; };
     friend bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret);
     friend u32i v6mnp::mask_len(const IPv6_Mask &mask);
     friend MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip);
