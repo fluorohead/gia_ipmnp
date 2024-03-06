@@ -49,6 +49,7 @@ public:
     static const char hexLow[];  // "0123456789abcdef"
     static const char hexPerm[]; // "0123456789abcdefABCDEF"
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
+    static bool valid_mask(const string &ipstr, IPv6_Mask *ret = nullptr); // mask validator
     static IPv6_Addr to_IPv6(const string &ipstr); // ip string to IPv6_Addr object
     static u32i mask_len(const IPv6_Mask &mask); // bitmask to mask len
     static IPv6_Mask gen_mask(u32i mask_len); // generate bitmask from mask length
@@ -249,6 +250,7 @@ public:
     IPv6_Addr(const u16i arr[8]);
     IPv6_Addr(const array<u16i,8> &arr);
     IPv6_Addr(const string &ipstr) { *this = v6mnp::to_IPv6(ipstr); };
+    IPv6_Addr(const char *ipcstr) { v6mnp::valid_addr(ipcstr, this); };
     string to_str(u32i fmt) const;
     string to_str() const { return to_str(v6mnp::what_fmt()); };
     array<u8i,16> to_media_tx() const;
@@ -305,6 +307,7 @@ public:
     const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
     friend bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret);
+    friend bool v6mnp::valid_mask(const string &ipstr, IPv6_Mask *ret);
     friend u32i v6mnp::mask_len(const IPv6_Mask &mask);
     friend MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip);
 };

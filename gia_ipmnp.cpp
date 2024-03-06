@@ -174,11 +174,11 @@ vector<string> v6mnp::xtts_split(const string &text, char spl) {
     return ret;
 }
 
-bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
+bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
     if (ret != nullptr) *ret = {0x0, 0x0};
     IPv6_Addr interim {0, 0}; // reverse order like in real memory
     u32i leftToFill {8}; // hextets left to fill
-    size_t fullLen {ip.length()};
+    size_t fullLen {ipstr.length()};
     bool v4embed {false}; // is embedded ipv4 address present?
     u32i v4dots {0}; // ipv4 dots counter
     size_t v4Len {0}; // len of embedden ipv4
@@ -188,26 +188,26 @@ bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
     // length check;
     if ((fullLen < 2) || (fullLen > 45)) return false;
     // repeating of double colon check
-    dblColons = word_cnt(ip, "::");
+    dblColons = word_cnt(ipstr, "::");
     if (dblColons > 1) return false;
     // colon count check
-    colons = word_cnt(ip, ":");
+    colons = word_cnt(ipstr, ":");
     if ((colons > 7) || (colons < 2)) return false;
     // dots count check
-    v4dots = word_cnt(ip, ".");
+    v4dots = word_cnt(ipstr, ".");
     if (((v4dots >= 1) && (v4dots <= 2)) || (v4dots > 3)) return false;
     if (v4dots == 3) v4embed = true;
     if (v4embed && (!dblColons) && (colons < 6)) return false; // in case "a:b:a:255.100.3.3"
     if ((!dblColons) && (colons < 7)) return false;
-    if (ip == "::") return true;
-    if (ip == "::1") {
+    if (ipstr == "::") return true;
+    if (ipstr == "::1") {
         if (ret != nullptr) (*ret).as_u8i[0] = 1;
         return true;
     }
 
     // bad symbols check
     bool badsymb; // is bad symbols present?
-    for (auto && ipchar : ip) {
+    for (auto && ipchar : ipstr) {
         badsymb = true;
         for (auto && perm : hexPerm) {
             if (ipchar == perm) {
@@ -223,30 +223,30 @@ bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
         size_t idx = fullLen;
         do {
             idx--;
-            if (ip[idx] == ':') break;
+            if (ipstr[idx] == ':') break;
         } while (idx > 1);
         idx++;
         IPv4_Addr ipv4;
         v4Len = fullLen - idx;
-        if (v4mnp::valid_addr(ip.substr(idx, fullLen - idx), &ipv4)) {
+        if (v4mnp::valid_addr(ipstr.substr(idx, fullLen - idx), &ipv4)) {
             interim.as_u32i[0] = ipv4();
             leftToFill -= 2;
         } else return false;
     }
 
     // check for ipv4 dots in wrong places
-    if ((v4embed) && (word_cnt(ip.substr(0, fullLen - v4Len), "."))) return false;
+    if ((v4embed) && (word_cnt(ipstr.substr(0, fullLen - v4Len), "."))) return false;
 
     // splitting hextets
     vector <string> xttVec;
     if (v4embed) {
-        if (ip.substr(fullLen - v4Len - 2, 2) != "::") {
-            xttVec = xtts_split(ip.substr(0, fullLen - v4Len - 1), ':');
+        if (ipstr.substr(fullLen - v4Len - 2, 2) != "::") {
+            xttVec = xtts_split(ipstr.substr(0, fullLen - v4Len - 1), ':');
         } else {
-            xttVec = xtts_split(ip.substr(0, fullLen - v4Len), ':');
+            xttVec = xtts_split(ipstr.substr(0, fullLen - v4Len), ':');
         }
     } else {
-        xttVec = xtts_split(ip.substr(0, fullLen), ':');
+        xttVec = xtts_split(ipstr.substr(0, fullLen), ':');
     }
     size_t vecLen = xttVec.size(); // vector length
     if (vecLen > leftToFill) return false;
@@ -265,6 +265,33 @@ bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret) {
         } else { // multiply zero-hextets by skipping such groups in interim (interim is also initialized by zeroes)
             nextIdx += (leftToFill - vecLen + 1);
         }
+    }
+    if (ret != nullptr) *ret = interim;
+    return true;
+}
+
+bool v6mnp::valid_mask(const string &ipstr, IPv6_Mask *ret) {
+    if (ret != nullptr) *ret = {0x0, 0x0};
+    IPv6_Mask interim;
+    if (!valid_addr(ipstr, &interim)) return false;
+    u32i shift {0};
+    for ( ; shift < 64; shift++) { // looking for binary ones in least signif. part
+        if ((interim.as_u128i.ls >> shift) & 1) break;
+    }
+    if (shift != 64) { // found last binary one in previous loop; looking for binary zeros in least signif. part
+        for ( ; shift < 64; shift++)
+            if (!((interim.as_u128i.ls >> shift) & 1))
+                return false;
+    }
+    // here, if no binary ones was found in least signif. part
+    shift = 0;
+    for ( ; shift < 64; shift++) { // looking for binary ones in most signif. part
+        if ((interim.as_u128i.ms >> shift) & 1) break;
+    }
+    if (shift != 64) { // looking for binary zeros in most signif. part
+        for ( ; shift < 64; shift++)
+            if (!((interim.as_u128i.ms >> shift) & 1))
+                return false;
     }
     if (ret != nullptr) *ret = interim;
     return true;
