@@ -270,10 +270,10 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
     return true;
 }
 
-bool v6mnp::valid_mask(const string &ipstr, IPv6_Mask *ret) {
+bool v6mnp::valid_mask(const string &maskstr, IPv6_Mask *ret) {
     if (ret != nullptr) *ret = {0x0, 0x0};
     IPv6_Mask interim;
-    if (!valid_addr(ipstr, &interim)) return false;
+    if (!valid_addr(maskstr, &interim)) return false;
     u32i shift {0};
     for ( ; shift < 64; shift++) { // looking for binary ones in least signif. part
         if ((interim.as_u128i.ls >> shift) & 1) break;
