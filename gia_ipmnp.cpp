@@ -9,9 +9,9 @@ const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
 
-u32i v4mnp::dstr_to_u32i(const string &str) {
-    u32i strLen = str.length();
-    u32i digNum = strLen;
+u32i v4mnp::dstr_to_u32i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 3
+    u8i strLen = str.length();
+    u8i digNum = strLen;
     u32i ret {0x0};
     do {
         ret += (str[digNum - 1] - '0') * inner_pow(10, (strLen - digNum));
@@ -44,7 +44,7 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
     };
     u32i octets[4];
     for (u32i oct = 0; oct < 4; oct++) {
-        if (!ss[oct].empty()) {
+        if ((!ss[oct].empty()) && (ss[oct].length() <= 3)) {
             //octets[oct] = stoi(ss[oct]);
             octets[oct] = dstr_to_u32i(ss[oct]);
         } else {
@@ -115,6 +115,30 @@ u32i v6mnp::word_cnt(const string &text, const string &patt) {
         nextPos++;
     } while (nextPos <= (tlen - plen));
     return wc;
+}
+
+u16i v6mnp::hstr_to_u16i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 4
+    u8i strLen = str.length();
+    u8i digNum = strLen;
+    u16i ret {0x0};
+    u8i  deduct;
+    u8i  symb;
+    do {
+        symb = str[digNum - 1];
+        switch (symb & 0xF0) {
+        case 0b01100000: // a - f
+            deduct = 87;
+            break;
+        case 0b01000000: // A - F
+            deduct = 55;
+            break;
+        default: // 0 - 9
+            deduct = 48;
+        }
+        ret += (symb - deduct) * inner_pow(16, (strLen - digNum));
+        digNum--;
+    } while (digNum > 0);
+    return ret;
 }
 
 vector<string> v6mnp::xtts_split(const string &text, char spl) {
@@ -237,7 +261,8 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
         if ((*it).length() > 4) return false; // check for each hextet length
         u32i decimal;
         if (*it != ":") { // colon symbol is used as marker of repeating zeroes group
-            decimal = stoi(*it, nullptr, 16);
+            //decimal = stoi(*it, nullptr, 16);
+            decimal = hstr_to_u16i(*it);
             interim.as_u16i[nextIdx] = decimal;
             nextIdx++;
         } else { // multiply zero-hextets by skipping such groups in interim (interim is also initialized by zeroes)

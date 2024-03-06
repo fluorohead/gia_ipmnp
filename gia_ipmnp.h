@@ -27,7 +27,7 @@ using IPv6_Mask = IPv6_Addr;
 using MAC_Mask  = MAC_Addr;
 
 class v4mnp {
-    static u32i inner_pow(u32i x, u32i y) { for (; y > 1; y--) x *= x; return (!y) ? 1 : x; }
+    static u32i inner_pow(u32i x, u8i y) { if (!y) return 1; u32i ret {1}; for (; y > 0; y--) ret *= x; return ret; }
     static u32i dstr_to_u32i(const string &str);
 public:
     static const u32i UNKNOWN_ADDR {0x00000000};
@@ -42,6 +42,8 @@ public:
 };
 
 class v6mnp {
+    static u16i inner_pow(u8i x, u8i y) { if (!y) return 1; u32i ret {1}; for (; y > 0; y--) ret *= x; return ret; }
+    static u16i hstr_to_u16i(const string &str);
     static vector<string> xtts_split(const string &text, char spl); // hextets splitter
     static u32i word_cnt(const string &text, const string &patt); // word counter
     static inline u32i _fmt = 0; // IETF
