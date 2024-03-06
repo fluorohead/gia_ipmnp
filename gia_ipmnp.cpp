@@ -9,6 +9,17 @@ const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
 
+u32i v4mnp::dstr_to_u32i(const string &str) {
+    u32i strLen = str.length();
+    u32i digNum = strLen;
+    u32i ret {0x0};
+    do {
+        ret += (str[digNum - 1] - '0') * inner_pow(10, (strLen - digNum));
+        digNum--;
+    } while (digNum > 0);
+    return ret;
+}
+
 bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
     if (ret != nullptr) ret->as_u32i = 0x0;
     size_t len {ipstr.length()};
@@ -34,7 +45,8 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
     u32i octets[4];
     for (u32i oct = 0; oct < 4; oct++) {
         if (!ss[oct].empty()) {
-            octets[oct] = stoi(ss[oct]);
+            //octets[oct] = stoi(ss[oct]);
+            octets[oct] = dstr_to_u32i(ss[oct]);
         } else {
             return false;
         }
@@ -49,54 +61,20 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
 }
 
 bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret) {
-    if (ret != nullptr) ret->as_u32i = 0x0;
-    size_t len {maskstr.length()};
-    if ((len > 15) || (len < 7)) return false;
-    size_t dotpos[3];
-    size_t index {0}; // [index] in dotsPos array
-    u32i dots {0}; // dots counter
-    for (auto && ch : maskstr) { // check for permitted symbols and dots counting
-        if ((ch > '9') || ((ch < '0') && (ch != '.'))) return false;
-        if (ch == '.') {
-            if (dots <= 3) dotpos[dots] = index;
-            dots++;
-        }
-        index++;
+    if (ret != nullptr) *ret = u32i(0x0);
+    IPv4_Mask interim;
+    if (!valid_addr(maskstr, &interim)) return false;
+    u32i shift {0};
+    for ( ; shift < 32; shift++) { // looking for binary ones
+        if ((interim.as_u32i >> shift) & 1) break;
     }
-    if (dots != 3) return false;
-    string ss[4] {
-        maskstr.substr(dotpos[2] + 1, len - dotpos[2] - 1),
-        maskstr.substr(dotpos[1] + 1, dotpos[2] - dotpos[1] - 1),
-        maskstr.substr(dotpos[0] + 1, dotpos[1] - dotpos[0] - 1),
-        maskstr.substr(0, dotpos[0])
-    };
-    u32i octets[4];
-    for (u32i oct = 0; oct < 4; oct++) {
-        if (!ss[oct].empty()) {
-            octets[oct] = stoi(ss[oct]);
-        } else {
-            return false;
-        }
+    if (shift != 32) { // looking for binary zeros
+        for ( ; shift < 32; shift++)
+            if (!((interim.as_u32i >> shift) & 1))
+                return false;
     }
-    for (auto && oct : octets) { // checking for correct values : 255, 254, 248, 240, etc...
-        bool bad = true;
-        for (u32i ofs = 0; ofs <= 8; ofs++) {
-            if (oct == ((0xFF << ofs) & 0xFF)) {
-                bad = false;
-                break;
-            }
-        }
-        if (bad) return false;
-    }
-    if ((octets[0] <= octets[1]) && (octets[1] <= octets[2]) && (octets[2] <= octets[3])) {
-        if (ret != nullptr) {
-            for (auto i = 0; i <= 3; i++) {
-                ret->as_u32i |= (octets[i] << (8 * i));
-            }
-        }
-        return true;
-    }
-    return false;
+    if (ret != nullptr) *ret = interim;
+    return true;
 }
 
 u32i v4mnp::to_u32i(const string &ipstr) {

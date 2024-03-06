@@ -27,6 +27,8 @@ using IPv6_Mask = IPv6_Addr;
 using MAC_Mask  = MAC_Addr;
 
 class v4mnp {
+    static u32i inner_pow(u32i x, u32i y) { for (; y > 1; y--) x *= x; return (!y) ? 1 : x; }
+    static u32i dstr_to_u32i(const string &str);
 public:
     static const u32i UNKNOWN_ADDR {0x00000000};
     static const u32i LOOPBACK_MASK {0xFFFFFFFF};
@@ -49,7 +51,7 @@ public:
     static const char hexLow[];  // "0123456789abcdef"
     static const char hexPerm[]; // "0123456789abcdefABCDEF"
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
-    static bool valid_mask(const string &ipstr, IPv6_Mask *ret = nullptr); // mask validator
+    static bool valid_mask(const string &maskstr, IPv6_Mask *ret = nullptr); // mask validator
     static IPv6_Addr to_IPv6(const string &ipstr); // ip string to IPv6_Addr object
     static u32i mask_len(const IPv6_Mask &mask); // bitmask to mask len
     static IPv6_Mask gen_mask(u32i mask_len); // generate bitmask from mask length
