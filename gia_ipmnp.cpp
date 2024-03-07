@@ -9,6 +9,23 @@ const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
 
+//IPv4_Addr operator+(const IPv4_Addr &ip, const u32i &sum) { return IPv4_Addr{as_u32i + sum}; };
+//IPv4_Addr operator-(u32i sub) { return IPv4_Addr{as_u32i - sub}; };
+
+// bool operator>(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i > val; };
+// bool operator>(const u64i &val, const IPv4_Addr &ip) { return val > ip.as_u32i; };
+// bool operator<(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i < val; };
+// bool operator<(const u64i &val, const IPv4_Addr &ip) { return val < ip.as_u32i; };
+// bool operator>=(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i >= val; };
+// bool operator>=(const u64i &val, const IPv4_Addr &ip) { return val >= ip.as_u32i; };
+// bool operator<=(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i <= val; };
+// bool operator<=(const u64i &val, const IPv4_Addr &ip) { return val <= ip.as_u32i; };
+// bool operator==(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i == val; };
+// bool operator==(const u64i &val, const IPv4_Addr &ip) { return val == ip.as_u32i; };
+// bool operator!=(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i != val; };
+// bool operator!=(const u64i &val, const IPv4_Addr &ip) { return val != ip.as_u32i; };
+
+
 u32i v4mnp::dstr_to_u32i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 3
     u8i strLen = str.length();
     u8i digNum = strLen;
