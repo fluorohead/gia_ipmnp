@@ -136,8 +136,9 @@ public:
     u64i operator()() const { return as_48bits; };
     u8i& operator[](u32i octet) { if (octet > 5) return garbage; return as_u8i[octet]; };
     const u8i operator[](u32i octet) const { if (octet > 5) return garbage; return as_u8i[octet]; };
-    u64i operator%(u64i mod) { return as_48bits % mod; };
-    MAC_Addr operator/(u64i div) { return as_48bits / div; };
+    // u64i operator%(u64i mod) { return as_48bits % mod; };
+    // MAC_Addr operator/(u64i div) { return as_48bits / div; };
+    void operator/=(u64i div) { as_48bits /= div; };
 
     friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
     friend bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret);
@@ -230,6 +231,7 @@ public:
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
     // u32i operator%(u32i mod) { return as_u32i % mod; };
     // IPv4_Addr operator/(u32i div) { return as_u32i / div; };
+    void operator/=(u32i div) { as_u32i /= div; };
 
     friend bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret);
     friend bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret);

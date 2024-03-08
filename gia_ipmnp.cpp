@@ -596,35 +596,35 @@ bool IPv6_Addr::can_be_mask() const {
     return true;
 }
 
-IPv6_Addr IPv6_Addr::operator+(const IPv6_Addr &sum) const {
-    IPv6_Addr ret {*this};
-    ret.as_u128i.ms += sum.as_u128i.ms;
-    if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum.as_u128i.ls) ret.as_u128i.ms++;
-    ret.as_u128i.ls += sum.as_u128i.ls;
-    return ret;
-}
+// IPv6_Addr IPv6_Addr::operator+(const IPv6_Addr &sum) const {
+//     IPv6_Addr ret {*this};
+//     ret.as_u128i.ms += sum.as_u128i.ms;
+//     if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum.as_u128i.ls) ret.as_u128i.ms++;
+//     ret.as_u128i.ls += sum.as_u128i.ls;
+//     return ret;
+// }
 
-IPv6_Addr IPv6_Addr::operator+(u64i sum) const {
-    IPv6_Addr ret {*this};
-    if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum) ret.as_u128i.ms++;
-    ret.as_u128i.ls += sum;
-    return ret;
-}
+// IPv6_Addr IPv6_Addr::operator+(u64i sum) const {
+//     IPv6_Addr ret {*this};
+//     if ((0xFFFF'FFFF'FFFF'FFFF - as_u128i.ls) < sum) ret.as_u128i.ms++;
+//     ret.as_u128i.ls += sum;
+//     return ret;
+// }
 
-IPv6_Addr IPv6_Addr::operator-(const IPv6_Addr &sub) const {
-    IPv6_Addr ret {*this};
-    ret.as_u128i.ms -= sub.as_u128i.ms;
-    if (sub.as_u128i.ls > as_u128i.ls) ret.as_u128i.ms--;
-    ret.as_u128i.ls -= sub.as_u128i.ls;
-    return ret;
-}
+// IPv6_Addr IPv6_Addr::operator-(const IPv6_Addr &sub) const {
+//     IPv6_Addr ret {*this};
+//     ret.as_u128i.ms -= sub.as_u128i.ms;
+//     if (sub.as_u128i.ls > as_u128i.ls) ret.as_u128i.ms--;
+//     ret.as_u128i.ls -= sub.as_u128i.ls;
+//     return ret;
+// }
 
-IPv6_Addr IPv6_Addr::operator-(u64i sub) const {
-    IPv6_Addr ret {*this};
-    if (sub > as_u128i.ls) ret.as_u128i.ms--;
-    ret.as_u128i.ls -= sub;
-    return ret;
-}
+// IPv6_Addr IPv6_Addr::operator-(u64i sub) const {
+//     IPv6_Addr ret {*this};
+//     if (sub > as_u128i.ls) ret.as_u128i.ms--;
+//     ret.as_u128i.ls -= sub;
+//     return ret;
+// }
 
 void IPv6_Addr::operator+=(const IPv6_Addr &sum) {
     as_u128i.ms += sum.as_u128i.ms;
