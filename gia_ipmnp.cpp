@@ -1,5 +1,6 @@
 #include "gia_ipmnp.h"
 #include <memory.h>
+//#include <iostream>
 
 using namespace std;
 
@@ -8,23 +9,6 @@ const char v6mnp::hexLow[]  {"0123456789abcdef"};
 const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
-
-//IPv4_Addr operator+(const IPv4_Addr &ip, const u32i &sum) { return IPv4_Addr{as_u32i + sum}; };
-//IPv4_Addr operator-(u32i sub) { return IPv4_Addr{as_u32i - sub}; };
-
-// bool operator>(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i > val; };
-// bool operator>(const u64i &val, const IPv4_Addr &ip) { return val > ip.as_u32i; };
-// bool operator<(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i < val; };
-// bool operator<(const u64i &val, const IPv4_Addr &ip) { return val < ip.as_u32i; };
-// bool operator>=(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i >= val; };
-// bool operator>=(const u64i &val, const IPv4_Addr &ip) { return val >= ip.as_u32i; };
-// bool operator<=(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i <= val; };
-// bool operator<=(const u64i &val, const IPv4_Addr &ip) { return val <= ip.as_u32i; };
-// bool operator==(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i == val; };
-// bool operator==(const u64i &val, const IPv4_Addr &ip) { return val == ip.as_u32i; };
-// bool operator!=(const IPv4_Addr &ip, const u64i &val) { return ip.as_u32i != val; };
-// bool operator!=(const u64i &val, const IPv4_Addr &ip) { return val != ip.as_u32i; };
-
 
 u32i v4mnp::dstr_to_u32i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 3
     u8i strLen = str.length();
@@ -776,10 +760,12 @@ void IPv6_Addr::operator>>=(u32i shift) {
     }
 }
 
-string MAC_Addr::to_str(char sep, u32i grp_len, bool caps) const {
+string MAC_Addr::to_str(u32i grp_len, bool caps, char sep) const {
     string ret;
     ret.reserve(18);
-    if (grp_len > 3) grp_len = 3;
+    if (grp_len == 0) grp_len = 1;
+    if (grp_len > 6) grp_len = 6;
+    if ((grp_len > 3) && (grp_len < 6)) grp_len = 3;
     u32i idx {6};
     u32i gCnt{0}; // count elements in one group
     char octet[3] {"  "};
@@ -807,17 +793,49 @@ array<u8i,6> MAC_Addr::to_media_tx() const {
     return ret;
 }
 
-bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret) {
+u64i macmnp::inner_pow(u8i x, u8i y) {
+    if (!y) return 1;
+    u64i ret {1};
+    for (; y > 0; y--) ret *= x;
+    return ret;
+}
+
+u64i macmnp::hstr_to_u64i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 12
+    u8i strLen = str.length();
+    u8i digNum = strLen;
+    u64i ret {0x0};
+    u8i  deduct;
+    u8i  symb;
+    do {
+        symb = str[digNum - 1];
+        switch (symb & 0xF0) {
+        case 0b01100000: // a - f
+            deduct = 87;
+            break;
+        case 0b01000000: // A - F
+            deduct = 55;
+            break;
+        default: // 0 - 9
+            deduct = 48;
+        }
+        ret += (symb - deduct) * inner_pow(16, (strLen - digNum));
+        digNum--;
+    } while (digNum > 0);
+    return ret;
+}
+
+bool macmnp::valid_addr(const string &macstr, u32i grp_len, char sep, MAC_Addr *ret) {
     if (ret != nullptr) *ret = 0;
     size_t len {macstr.length()};
     if ((len > 17) || (len < 12)) return false; // len(06:05:04:03:02:01) == 17
-    if (grp_len > 3) return false;
+    if (grp_len != 6) {
+        if ((grp_len > 3) || (grp_len == 0) || (grp_len > 6)) return false;
+    }
     u64i _48bits;
-    string interim;
+    string interim; // cleaned from separators
     interim.reserve(len);
-    u32i hexCnt {0};
-    u32i gCnt {0}; // count groups of elements
-    u32i gSymbs {0}; // elements in one group counter
+    u32i hexCnt {0}; // counter of hex symbols total (must be <= 12)
+    u32i gSymbs {0}; // counter of symbols in one group
     u32i gSymbsMax = grp_len * 2; // amount of hex symbols that must be present one group
     u32i seps {0}; // separators counter
     u32i sepsMax = (6 / grp_len) - 1;
@@ -847,32 +865,33 @@ bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *
     }
     if (seps != sepsMax) return false;
     if (interim.length() != 12) return false;
-    _48bits = stoull(interim, nullptr, 16);
+    //_48bits = stoull(interim, nullptr, 16);
+    _48bits = hstr_to_u64i(interim);
     if (ret != nullptr) ret->as_48bits = _48bits;
     return true;
 }
 
-u64i macmnp::to_48bits(const string &macstr, char sep, u32i grp_len) {
+u64i macmnp::to_48bits(const string &macstr, u32i grp_len, char sep) {
     MAC_Addr mac;
-    valid_addr(macstr, sep, grp_len, &mac);
+    valid_addr(macstr, grp_len, sep, &mac);
     return mac.as_48bits;
 }
 
 u64i macmnp::to_48bits(const string &macstr) {
     MAC_Addr mac;
-    valid_addr(macstr, _def_sep, _def_grp_len,  &mac);
+    valid_addr(macstr, _def_grp_len, _def_sep, &mac);
     return mac.as_48bits;
 }
 
-MAC_Addr macmnp::to_MAC(const string &macstr, char sep, u32i grp_len) {
+MAC_Addr macmnp::to_MAC(const string &macstr, u32i grp_len, char sep) {
     MAC_Addr mac;
-    valid_addr(macstr, sep, grp_len, &mac);
+    valid_addr(macstr, grp_len, sep, &mac);
     return mac;
 }
 
 MAC_Addr macmnp::to_MAC(const string &macstr) {
     MAC_Addr mac;
-    valid_addr(macstr, _def_sep, _def_grp_len, &mac);
+    valid_addr(macstr, _def_grp_len, _def_sep, &mac);
     return mac;
 }
 
@@ -884,3 +903,18 @@ MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip) {
     return MAC_Addr{u32i(ip.as_u8i[3]) | 0x333300, ip.as_u32i[0] & 0x00FFFFFF};
 }
 
+void macmnp::set_fmt(u32i grp_len, bool caps, char sep) {
+    _def_sep = sep;
+    if ((grp_len >= 1) && (grp_len <= 3) || (grp_len == 6)) {
+        _def_grp_len = grp_len;
+    } else {
+        if (grp_len == 0) {
+            _def_grp_len = 1;
+        } else {
+            if (grp_len > 6) {
+                _def_grp_len = 6;
+            }
+        }
+    }
+    _def_caps = caps;
+};

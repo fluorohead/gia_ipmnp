@@ -6,6 +6,8 @@
 #include <vector>
 #include <cstdint>
 
+#define DEFSEP ':'
+
 using namespace std;
 
 using u8i  = uint8_t;
@@ -65,20 +67,22 @@ public:
 };
 
 class macmnp {
-    static inline char _def_sep {':'};
+    static u64i inner_pow(u8i x, u8i y);
+    static u64i hstr_to_u64i(const string &str);
+    static inline char _def_sep {DEFSEP};
     static inline u32i _def_grp_len {1};
     static inline bool _def_caps {true};
 public:
     static const char hexPerm[];
-    static bool valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret = nullptr);
-    static bool valid_addr(const string &macstr, MAC_Addr *ret = nullptr) { return valid_addr(macstr, _def_sep, _def_grp_len, ret); };
-    static u64i to_48bits(const string &macstr, char sep, u32i grp_len);
+    static bool valid_addr(const string &macstr, u32i grp_len, char sep = DEFSEP, MAC_Addr *ret = nullptr);
+    static bool valid_addr(const string &macstr, MAC_Addr *ret = nullptr) { return valid_addr(macstr, _def_grp_len, _def_sep, ret); };
+    static u64i to_48bits(const string &macstr, u32i grp_len, char sep = DEFSEP);
     static u64i to_48bits(const string &macstr);
-    static MAC_Addr to_MAC(const string &macstr, char sep, u32i grp_len);
+    static MAC_Addr to_MAC(const string &macstr, u32i grp_len, char sep = DEFSEP);
     static MAC_Addr to_MAC(const string &macstr);
     static MAC_Addr gen_mcast(const IPv4_Addr &ip);
     static MAC_Addr gen_mcast(const IPv6_Addr &ip);
-    static void set_fmt(char sep, u32i grp_len, bool caps) { _def_sep = sep; _def_grp_len = (grp_len <= 3) ? grp_len : 1; _def_caps = caps; };
+    static void set_fmt(u32i grp_len, bool caps, char sep = DEFSEP);
     static char what_sep() { return _def_sep; };
     static u32i what_grp_len() { return _def_grp_len; };
     static bool what_caps() { return _def_caps; };
@@ -96,10 +100,10 @@ public:
     MAC_Addr() { as_48bits = 0; };
     MAC_Addr(u64i _48bits) { as_48bits = _48bits; fix(); };
     MAC_Addr(u32i oui, u32i nic) { as_48bits = oui; as_48bits = ((as_48bits << 24) & 0xFFFFFF000000) | (nic & 0xFFFFFF); fix(); };
-    MAC_Addr(const string &macstr, char sep, u32i grp_len) { as_48bits = macmnp::to_48bits(macstr, sep, grp_len); };
-    MAC_Addr(const string &macstr) { as_48bits = macmnp::to_48bits(macstr, macmnp::what_sep(), macmnp::what_grp_len()); };
-    string to_str(char sep, u32i grp_len, bool caps) const;
-    string to_str() const { return to_str(macmnp::what_sep(), macmnp::what_grp_len(), macmnp::what_caps()); };
+    MAC_Addr(const string &macstr, u32i grp_len, char sep = DEFSEP) { as_48bits = macmnp::to_48bits(macstr, grp_len, sep); };
+    MAC_Addr(const string &macstr) { as_48bits = macmnp::to_48bits(macstr, macmnp::what_grp_len(), macmnp::what_sep()); };
+    string to_str(u32i grp_len, bool caps, char sep = DEFSEP) const;
+    string to_str() const { return to_str(macmnp::what_grp_len(), macmnp::what_caps(), macmnp::what_sep()); };
     array<u8i,6> to_media_tx() const ;
     void set_nic(u32i nic) { *((u16i*)&as_48bits) = *((u16i*)&nic); as_u8i[macmnp::oct4] = ((u8i*)&nic)[macmnp::oct4]; };
     void set_oui(u32i oui) { *((u32i*)&as_u8i[macmnp::oct3]) = oui; as_48bits &= 0xFFFFFFFFFFFF; };
@@ -141,8 +145,8 @@ public:
     void operator/=(u64i div) { as_48bits /= div; };
 
     friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
-    friend bool macmnp::valid_addr(const string &macstr, char sep, u32i grp_len, MAC_Addr *ret);
-    friend u64i macmnp::to_48bits(const string &macstr, char sep, u32i grp_len);
+    friend bool macmnp::valid_addr(const string &macstr, u32i grp_len, char sep, MAC_Addr *ret);
+    friend u64i macmnp::to_48bits(const string &macstr, u32i grp_len, char sep);
     friend u64i macmnp::to_48bits(const string &macstr);
 };
 
