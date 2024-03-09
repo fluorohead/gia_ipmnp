@@ -301,6 +301,12 @@ bool v6mnp::valid_mask(const string &maskstr, IPv6_Mask *ret) {
     return true;
 }
 
+u128i v6mnp::to_u128i(const string &ipstr) {
+    IPv6_Addr ret;
+    valid_addr(ipstr, &ret);
+    return ret();
+}
+
 IPv6_Addr v6mnp::to_IPv6(const string &ipstr) {
     IPv6_Addr ret;
     valid_addr(ipstr, &ret);
@@ -378,8 +384,8 @@ string IPv4_Addr::to_str() const {
 
 array<u8i,4> IPv4_Addr::to_media_tx() const {
     array <u8i,4> ret;
-    for (u32i idx = 0; idx < 5; idx++) {
-        ret[4 - idx] = as_u8i[idx];
+    for (u32i idx = 0; idx < 4; idx++) {
+        ret[3 - idx] = as_u8i[idx];
     }
     return ret;
 }
@@ -825,7 +831,7 @@ u64i macmnp::hstr_to_u64i(const string &str) { // string must be preliminarily c
 }
 
 bool macmnp::valid_addr(const string &macstr, u32i grp_len, char sep, MAC_Addr *ret) {
-    if (ret != nullptr) *ret = 0;
+    if (ret != nullptr) *ret = u64i(0);
     size_t len {macstr.length()};
     if ((len > 17) || (len < 12)) return false; // len(06:05:04:03:02:01) == 17
     if (grp_len != 6) {

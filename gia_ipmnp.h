@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+//#include <iostream>
 
 #define DEFSEP ':'
 
@@ -41,6 +42,7 @@ public:
     static u32i mask_len(u32i bitmask); // integer mask to mask length
     static IPv4_Mask gen_mask(u32i mask_len); // generate mask object by mask length
     enum enOctets {oct1 = 3, oct2 = 2, oct3 = 1, oct4 = 0};
+    enum enLastError {NoError = 0, BadSyntax = 1, BadIndex = 2};
 };
 
 class v6mnp {
@@ -56,6 +58,7 @@ public:
     static const char hexPerm[]; // "0123456789abcdefABCDEF"
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
     static bool valid_mask(const string &maskstr, IPv6_Mask *ret = nullptr); // mask validator
+    static u128i to_u128i(const string &ipstr);
     static IPv6_Addr to_IPv6(const string &ipstr); // ip string to IPv6_Addr object
     static u32i mask_len(const IPv6_Mask &mask); // bitmask to mask len
     static IPv6_Mask gen_mask(u32i mask_len); // generate bitmask from mask length
@@ -64,6 +67,7 @@ public:
     static void set_fmt(u32i fmt) { _fmt = fmt; }; // setting format using format flags
     static u32i what_fmt() { return _fmt; }; // return current format
     enum enHextets {xtt1 = 7, xtt2 = 6, xtt3 = 5, xtt4 = 4, xtt5 = 3, xtt6 = 2, xtt7 = 1, xtt8 = 0};
+    enum enLastError {NoError = 0, BadSyntax = 1, BadIndex = 2};
 };
 
 class macmnp {
@@ -87,24 +91,27 @@ public:
     static u32i what_grp_len() { return _def_grp_len; };
     static bool what_caps() { return _def_caps; };
     enum enOctets {oct1 = 5, oct2 = 4, oct3 = 3, oct4 = 2, oct5 = 1, oct6 = 0};
+    enum enLastError {NoError = 0, BadSyntax = 1, BadIndex = 2};
 };
 
 class MAC_Addr {
     union {
-        u64i as_48bits;
+        u64i as_48bits {0x0};
         u8i  as_u8i[8]; // reversed order, not human readable
     };
     static inline u8i garbage;
+    mutable macmnp::enLastError lerr {macmnp::NoError};
     void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
 public:
     MAC_Addr() { as_48bits = 0; };
     MAC_Addr(u64i _48bits) { as_48bits = _48bits; fix(); };
     MAC_Addr(u32i oui, u32i nic) { as_48bits = oui; as_48bits = ((as_48bits << 24) & 0xFFFFFF000000) | (nic & 0xFFFFFF); fix(); };
-    MAC_Addr(const string &macstr, u32i grp_len, char sep = DEFSEP) { as_48bits = macmnp::to_48bits(macstr, grp_len, sep); };
-    MAC_Addr(const string &macstr) { as_48bits = macmnp::to_48bits(macstr, macmnp::what_grp_len(), macmnp::what_sep()); };
+    MAC_Addr(const string &macstr, u32i grp_len, char sep = DEFSEP) { lerr = (macmnp::valid_addr(macstr, grp_len, sep, this)) ? macmnp::NoError : macmnp::BadSyntax; };
+    MAC_Addr(const string &macstr) { lerr = (macmnp::valid_addr(macstr, macmnp::what_grp_len(), macmnp::what_sep(), this)) ? macmnp::NoError : macmnp::BadSyntax; };
     string to_str(u32i grp_len, bool caps, char sep = DEFSEP) const;
     string to_str() const { return to_str(macmnp::what_grp_len(), macmnp::what_caps(), macmnp::what_sep()); };
-    array<u8i,6> to_media_tx() const ;
+    array<u8i,6> to_media_tx() const;
+    macmnp::enLastError last_err() const { return lerr; };
     void set_nic(u32i nic) { *((u16i*)&as_48bits) = *((u16i*)&nic); as_u8i[macmnp::oct4] = ((u8i*)&nic)[macmnp::oct4]; };
     void set_oui(u32i oui) { *((u32i*)&as_u8i[macmnp::oct3]) = oui; as_48bits &= 0xFFFFFFFFFFFF; };
     u32i get_nic() const { return as_48bits & 0xFFFFFF; };
@@ -116,12 +123,8 @@ public:
     bool is_laa() const { return !is_uaa(); }; // locally administered addresses
     bool is_even() const { return (as_48bits & 1) != 1; };
     bool is_odd() const { return (as_48bits & 1) != 0; };
-    // MAC_Addr operator&(u64i bitmask) const { return {as_48bits & bitmask}; };
-    // MAC_Addr operator&(const MAC_Addr &bitmask) const { return {as_48bits & bitmask.as_48bits}; };
     void operator&=(u64i bitmask) { as_48bits &= bitmask; };
     void operator&=(MAC_Mask &bitmask) { as_48bits &= bitmask.as_48bits; };
-    // MAC_Addr operator|(u64i val) const { return {as_48bits | val}; };
-    // MAC_Addr operator|(const MAC_Addr &val) const { return {as_48bits | val.as_48bits}; };
     void operator|=(u64i val) { as_48bits |= val; };
     void operator|=(MAC_Addr &val) { as_48bits |= val.as_48bits; };
     bool operator>(u64i _48bits) const { return as_48bits > _48bits; };
@@ -138,10 +141,8 @@ public:
     bool operator!=(MAC_Addr mac) const { return as_48bits != mac.as_48bits; };
     MAC_Addr operator~() { return MAC_Addr{~as_48bits}; };
     u64i operator()() const { return as_48bits; };
-    u8i& operator[](u32i octet) { if (octet > 5) return garbage; return as_u8i[octet]; };
-    const u8i operator[](u32i octet) const { if (octet > 5) return garbage; return as_u8i[octet]; };
-    // u64i operator%(u64i mod) { return as_48bits % mod; };
-    // MAC_Addr operator/(u64i div) { return as_48bits / div; };
+    u8i& operator[](u32i octet) { if (octet > 5) { lerr = macmnp::BadIndex; return garbage; } lerr = macmnp::NoError; return as_u8i[octet]; };
+    const u8i operator[](u32i octet) const { if (octet > 5) { lerr = macmnp::BadIndex; return garbage;} lerr = macmnp::NoError; return as_u8i[octet]; };
     void operator/=(u64i div) { as_48bits /= div; };
 
     friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
@@ -152,20 +153,21 @@ public:
 
 class IPv4_Addr {
     union {
-        u32i as_u32i;
+        u32i as_u32i {0x0};
         u8i  as_u8i[4]; // index [3] is MSB, index [0] is LSB, reversed order, not human readable
     };
     static inline u8i garbage;
+    mutable v4mnp::enLastError lerr {v4mnp::NoError};
 public:
     IPv4_Addr() { as_u32i = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
     IPv4_Addr(u32i val) { as_u32i = val; };
     IPv4_Addr(u8i oct1, u8i oct2, u8i oct3, u8i oct4);
     IPv4_Addr(const u8i arr [4]);
     IPv4_Addr(const array<u8i,4> &arr);
-    IPv4_Addr(const string &ipstr) { v4mnp::valid_addr(ipstr, this); };
-    IPv4_Addr(const char *ipcstr) { v4mnp::valid_addr(ipcstr, this); };
+    IPv4_Addr(const string &ipstr) { lerr = (v4mnp::valid_addr(ipstr, this)) ? v4mnp::NoError : v4mnp::BadSyntax; };
     string to_str() const;
     array<u8i,4> to_media_tx() const;
+    v4mnp::enLastError last_err() const { return lerr; };
     bool is_unknown() const { return as_u32i == 0; }; // 0.0.0.0/32
     bool is_this_host() const { return as_u32i == 0; }; // aka "This host on this network" - RFC 1112
     bool is_private() const; // 10/8, 192.168/16, 172.(16-31)/16 - RFC 1918
@@ -197,8 +199,6 @@ public:
     bool is_even() const { return !(as_u32i & 1); };
     bool is_odd() const { return as_u32i & 1; };
     bool can_be_mask() const;
-    // IPv4_Addr operator+(u32i sum) const { return IPv4_Addr{as_u32i + sum}; };
-    // IPv4_Addr operator-(u32i sub) const { return IPv4_Addr{as_u32i - sub}; };
     void operator++(int val) { as_u32i++; };
     void operator--(int val) { as_u32i--; };
     void operator+=(u32i sum) { as_u32i += sum; };
@@ -209,12 +209,8 @@ public:
     IPv4_Addr operator>>(u32i shift) const { return IPv4_Addr{as_u32i >> shift}; };
     void operator<<=(u32i shift) { as_u32i <<= shift; };
     void operator>>=(u32i shift) { as_u32i >>= shift; };
-    // IPv4_Addr operator&(u32i bitmask) const { return IPv4_Addr{as_u32i & bitmask}; };
-    // IPv4_Addr operator&(const IPv4_Mask &bitmask) const { return IPv4_Addr{as_u32i & bitmask.as_u32i}; };
     void operator&=(u32i bitmask) { as_u32i &= bitmask; };
     void operator&=(const IPv4_Mask &bitmask) { as_u32i &= bitmask.as_u32i; };
-    // IPv4_Addr operator|(u32i bitmask) const { return IPv4_Addr{as_u32i | bitmask}; };
-    // IPv4_Addr operator|(IPv4_Mask bitmask) const { return IPv4_Addr{as_u32i | bitmask.as_u32i}; };
     void operator|=(u32i val) { as_u32i |= val; };
     void operator|=(const IPv4_Addr &val) { as_u32i |= val.as_u32i; };
     bool operator>(u64i val) const { return as_u32i > val; };
@@ -230,11 +226,9 @@ public:
     bool operator!=(u64i val) const { return as_u32i != val; };
     bool operator!=(const IPv4_Addr &ip) const { return as_u32i != ip.as_u32i; };
     u32i operator()() const { return as_u32i; };
-    u8i& operator[](u32i octet) { if (octet > 3) return garbage; return as_u8i[octet]; };
-    const u8i& operator[](u32i octet) const { if (octet > 3) return garbage; return as_u8i[octet]; };
+    u8i& operator[](u32i octet) { if (octet > 3) { lerr = v4mnp::BadIndex; return garbage; } lerr = v4mnp::NoError; return as_u8i[octet]; };
+    const u8i& operator[](u32i octet) const { if (octet > 3) { lerr = v4mnp::BadIndex; return garbage; } lerr = v4mnp::NoError; return as_u8i[octet]; };
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
-    // u32i operator%(u32i mod) { return as_u32i % mod; };
-    // IPv4_Addr operator/(u32i div) { return as_u32i / div; };
     void operator/=(u32i div) { as_u32i /= div; };
 
     friend bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret);
@@ -244,13 +238,14 @@ public:
 
 class IPv6_Addr {
     union {
-        u128i as_u128i;
+        u128i as_u128i {0x0, 0x0};
         u64i  as_u64i[2]; // index [1] is MSB (left part), index [0] is LSB (right part), reversed order, not human readable
         u32i  as_u32i[4]; // same principe, not human readable
         u16i  as_u16i[8]; // same principe, not human readable
         u8i   as_u8i[16]; // same principe, not human readable
     };
     static inline u16i garbage;
+    mutable v6mnp::enLastError lerr {v6mnp::NoError};
     bool getzg(u32i *beg, u32i *end) const; // finds longest group of zero-hextets
     bool show_ipv4 {true};
 public:
@@ -261,8 +256,7 @@ public:
     IPv6_Addr(u16i xtt1, u16i xtt2, u16i xtt3, u16i xtt4, u16i xtt5, u16i xtt6, u16i xtt7, u16i xtt8);
     IPv6_Addr(const u16i arr[8]);
     IPv6_Addr(const array<u16i,8> &arr);
-    IPv6_Addr(const string &ipstr) { *this = v6mnp::to_IPv6(ipstr); };
-    IPv6_Addr(const char *ipcstr) { v6mnp::valid_addr(ipcstr, this); };
+    IPv6_Addr(const string &ipstr) { lerr = (v6mnp::valid_addr(ipstr, this)) ? v6mnp::NoError : v6mnp::BadSyntax; };
     string to_str(u32i fmt) const;
     string to_str() const { return to_str(v6mnp::what_fmt()); };
     array<u8i,16> to_media_tx() const;
@@ -290,20 +284,14 @@ public:
     void map_ipv4(IPv4_Addr ipv4) { map_ipv4(ipv4()); };
     void setflag_show_ipv4() { show_ipv4 = true; };
     void unsetflag_show_ipv4() { show_ipv4 = false; };
-    // IPv6_Addr operator+(const IPv6_Addr &sum) const;
-    // IPv6_Addr operator+(u64i sum) const;
-    // IPv6_Addr operator-(const IPv6_Addr &sub) const;
-    // IPv6_Addr operator-(u64i sub) const;
     void operator++(int val) { if (as_u128i.ls == 0xFFFFFFFFFFFFFFFF) as_u128i.ms++; as_u128i.ls++; };
     void operator--(int val) { if (as_u128i.ls == 0) as_u128i.ms--; as_u128i.ls--; };
     void operator+=(const IPv6_Addr &sum);
     void operator+=(u64i sum);
     void operator-=(const IPv6_Addr &sub);
     void operator-=(u64i sub);
-    // IPv6_Addr operator&(const IPv6_Mask &bitmask) const { return IPv6_Addr{as_u128i.ms & bitmask.as_u128i.ms, as_u128i.ls & bitmask.as_u128i.ls}; };
     void operator&=(const IPv6_Mask &bitmask) { as_u128i.ms &= bitmask.as_u128i.ms; as_u128i.ls &= bitmask.as_u128i.ls; };
     bool operator==(const IPv6_Addr &ip) const { return (as_u128i.ms == ip.as_u128i.ms) && (as_u128i.ls == ip.as_u128i.ls); };
-    // IPv6_Addr operator|(const IPv6_Addr &val) const { return IPv6_Addr{as_u128i.ms | val.as_u128i.ms, as_u128i.ls | val.as_u128i.ls}; };
     void operator|=(const IPv6_Addr &val) { as_u128i.ms |= val.as_u128i.ms; as_u128i.ls |= val.as_u128i.ls; };
     bool operator!=(const IPv6_Addr &ip) const { return (as_u128i.ms != ip.as_u128i.ms) || (as_u128i.ls != ip.as_u128i.ls); };
     bool operator>(const IPv6_Addr &ip) const;
@@ -315,8 +303,8 @@ public:
     IPv6_Addr operator>>(u32i shift) const;
     void operator>>=(u32i shift);
     u128i operator()() const { return as_u128i; };
-    u16i& operator[](u32i xtet) { if (xtet > 7) return garbage; return as_u16i[xtet]; };
-    const u16i& operator[](u32i xtet) const { if (xtet > 7) return garbage; return as_u16i[xtet]; };
+    u16i& operator[](u32i xtet) { if (xtet > 7) { lerr = v6mnp::BadIndex; return garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
+    const u16i& operator[](u32i xtet) const { if (xtet > 7) { lerr = v6mnp::BadIndex; return garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
 
     friend bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret);
