@@ -123,6 +123,14 @@ public:
     bool is_laa() const { return !is_uaa(); }; // locally administered addresses
     bool is_even() const { return (as_48bits & 1) != 1; };
     bool is_odd() const { return (as_48bits & 1) != 0; };
+    void operator+=(u64i sum) { as_48bits += sum; fix(); };
+    void operator-=(u64i sub) { as_48bits -= sub; fix(); };
+    void operator+=(const MAC_Addr &sum) { as_48bits += sum.as_48bits; };
+    void operator-=(const MAC_Addr &sub) { as_48bits -= sub.as_48bits; };
+    MAC_Addr operator<<(u32i shift) const { return MAC_Addr{as_48bits << shift}; };
+    MAC_Addr operator>>(u32i shift) const { return MAC_Addr{as_48bits >> shift}; };
+    void operator<<=(u32i shift) { as_48bits <<= shift; fix(); };
+    void operator>>=(u32i shift) { as_48bits >>= shift; };
     void operator&=(u64i bitmask) { as_48bits &= bitmask; };
     void operator&=(MAC_Mask &bitmask) { as_48bits &= bitmask.as_48bits; };
     void operator|=(u64i val) { as_48bits |= val; };
