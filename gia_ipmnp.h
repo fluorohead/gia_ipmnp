@@ -127,8 +127,6 @@ public:
     void operator-=(u64i sub) { as_48bits -= sub; fix(); };
     void operator+=(const MAC_Addr &sum) { as_48bits += sum.as_48bits; };
     void operator-=(const MAC_Addr &sub) { as_48bits -= sub.as_48bits; };
-    MAC_Addr operator<<(u32i shift) const { return MAC_Addr{as_48bits << shift}; };
-    MAC_Addr operator>>(u32i shift) const { return MAC_Addr{as_48bits >> shift}; };
     void operator<<=(u32i shift) { as_48bits <<= shift; fix(); };
     void operator>>=(u32i shift) { as_48bits >>= shift; };
     void operator&=(u64i bitmask) { as_48bits &= bitmask; };
@@ -213,8 +211,6 @@ public:
     void operator-=(u32i sub) { as_u32i -= sub; };
     void operator+=(const IPv4_Addr &sum) { as_u32i += sum.as_u32i; };
     void operator-=(const IPv4_Addr &sub) { as_u32i -= sub.as_u32i; };
-    IPv4_Addr operator<<(u32i shift) const { return IPv4_Addr{as_u32i << shift}; };
-    IPv4_Addr operator>>(u32i shift) const { return IPv4_Addr{as_u32i >> shift}; };
     void operator<<=(u32i shift) { as_u32i <<= shift; };
     void operator>>=(u32i shift) { as_u32i >>= shift; };
     void operator&=(u32i bitmask) { as_u32i &= bitmask; };
