@@ -32,6 +32,7 @@ using MAC_Mask  = MAC_Addr;
 class v4mnp {
     static u32i inner_pow(u32i x, u8i y) { if (!y) return 1; u32i ret {1}; for (; y > 0; y--) ret *= x; return ret; }
     static u32i dstr_to_u32i(const string &str);
+    static string sub_str(const string &str, u32i pos, u32i len);
 public:
     static const u32i UNKNOWN_ADDR {0x00000000};
     static const u32i LOOPBACK_MASK {0xFFFFFFFF};
@@ -43,6 +44,8 @@ public:
     static IPv4_Mask gen_mask(u32i mask_len); // generate mask object by mask length
     enum enOctets {oct1 = 3, oct2 = 2, oct3 = 1, oct4 = 0};
     enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
+
+    friend class v6mnp;
 };
 
 class v6mnp {
