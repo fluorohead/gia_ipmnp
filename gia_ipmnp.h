@@ -42,7 +42,7 @@ public:
     static u32i mask_len(u32i bitmask); // integer mask to mask length
     static IPv4_Mask gen_mask(u32i mask_len); // generate mask object by mask length
     enum enOctets {oct1 = 3, oct2 = 2, oct3 = 1, oct4 = 0};
-    enum enLastError {NoError = 0, BadSyntax = 1, BadIndex = 2};
+    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
 };
 
 class v6mnp {
@@ -50,7 +50,7 @@ class v6mnp {
     static u16i hstr_to_u16i(const string &str);
     static vector<string> xtts_split(const string &text, char spl); // hextets splitter
     static u32i word_cnt(const string &text, const string &patt); // word counter
-    static inline u32i _fmt = 0; // IETF
+    static inline u32i _fmt = 0; // IETF_VIEW
 public:
     static const u32i IETF_VIEW = 0, UPPER_VIEW = 1, LEADZRS_VIEW = 2, EXPAND_VIEW = 4, FULL_VIEW = 7; // format flags
     static const char hexUpp[];  // "0123456789ABCDEF"
@@ -67,7 +67,7 @@ public:
     static void set_fmt(u32i fmt) { _fmt = fmt; }; // setting format using format flags
     static u32i what_fmt() { return _fmt; }; // return current format
     enum enHextets {xtt1 = 7, xtt2 = 6, xtt3 = 5, xtt4 = 4, xtt5 = 3, xtt6 = 2, xtt7 = 1, xtt8 = 0};
-    enum enLastError {NoError = 0, BadSyntax = 1, BadIndex = 2};
+    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
 };
 
 class macmnp {
@@ -91,7 +91,7 @@ public:
     static u32i what_grp_len() { return _def_grp_len; };
     static bool what_caps() { return _def_caps; };
     enum enOctets {oct1 = 5, oct2 = 4, oct3 = 3, oct4 = 2, oct5 = 1, oct6 = 0};
-    enum enLastError {NoError = 0, BadSyntax = 1, BadIndex = 2};
+    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
 };
 
 class MAC_Addr {
