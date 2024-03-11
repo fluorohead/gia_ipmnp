@@ -33,6 +33,7 @@ class v4mnp {
     static u32i inner_pow(u32i x, u8i y) { if (!y) return 1; u32i ret {1}; for (; y > 0; y--) ret *= x; return ret; }
     static u32i dstr_to_u32i(const string &str);
     static string sub_str(const string &str, u32i pos, u32i len);
+    static inline u8i garbage;
 public:
     static const u32i UNKNOWN_ADDR {0x00000000};
     static const u32i LOOPBACK_MASK {0xFFFFFFFF};
@@ -43,8 +44,9 @@ public:
     static u32i mask_len(u32i bitmask); // integer mask to mask length
     static IPv4_Mask gen_mask(u32i mask_len); // generate mask object by mask length
     enum enOctets {oct1 = 3, oct2 = 2, oct3 = 1, oct4 = 0};
-    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
+    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2, STL_Exception = 3};
 
+    friend IPv4_Addr;
     friend class v6mnp;
 };
 
@@ -54,6 +56,7 @@ class v6mnp {
     static vector<string> xtts_split(const string &text, char spl); // hextets splitter
     static u32i word_cnt(const string &text, const string &patt); // word counter
     static inline u32i _fmt = 0; // IETF_VIEW
+    static inline u16i garbage;
 public:
     static const u32i IETF_VIEW = 0, UPPER_VIEW = 1, LEADZRS_VIEW = 2, EXPAND_VIEW = 4, FULL_VIEW = 7; // format flags
     static const char hexUpp[];  // "0123456789ABCDEF"
@@ -70,7 +73,9 @@ public:
     static void set_fmt(u32i fmt) { _fmt = fmt; }; // setting format using format flags
     static u32i what_fmt() { return _fmt; }; // return current format
     enum enHextets {xtt1 = 7, xtt2 = 6, xtt3 = 5, xtt4 = 4, xtt5 = 3, xtt6 = 2, xtt7 = 1, xtt8 = 0};
-    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
+    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2, STL_Exception = 3};
+
+    friend class IPv6_Addr;
 };
 
 class macmnp {
@@ -79,6 +84,7 @@ class macmnp {
     static inline char _def_sep {DEFSEP};
     static inline u32i _def_grp_len {1};
     static inline bool _def_caps {true};
+    static inline u8i garbage;
 public:
     static const char hexPerm[];
     static bool valid_addr(const string &macstr, u32i grp_len, char sep = DEFSEP, MAC_Addr *ret = nullptr);
@@ -94,7 +100,9 @@ public:
     static u32i what_grp_len() { return _def_grp_len; };
     static bool what_caps() { return _def_caps; };
     enum enOctets {oct1 = 5, oct2 = 4, oct3 = 3, oct4 = 2, oct5 = 1, oct6 = 0};
-    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2};
+    enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2, STL_Exception = 3};
+
+    friend class MAC_Addr;
 };
 
 class MAC_Addr {
@@ -102,7 +110,6 @@ class MAC_Addr {
         u64i as_48bits {0x0};
         u8i  as_u8i[8]; // reversed order, not human readable
     };
-    static inline u8i garbage;
     mutable macmnp::enLastError lerr {macmnp::NoError};
     void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
 public:
@@ -150,8 +157,8 @@ public:
     bool operator!=(MAC_Addr mac) const { return as_48bits != mac.as_48bits; };
     MAC_Addr operator~() { return MAC_Addr{~as_48bits}; };
     u64i operator()() const { return as_48bits; };
-    u8i& operator[](u32i octet) { if (octet > 5) { lerr = macmnp::BadIndex; return garbage; } lerr = macmnp::NoError; return as_u8i[octet]; };
-    const u8i operator[](u32i octet) const { if (octet > 5) { lerr = macmnp::BadIndex; return garbage;} lerr = macmnp::NoError; return as_u8i[octet]; };
+    u8i& operator[](u32i octet) { if (octet > 5) { lerr = macmnp::BadIndex; return macmnp::garbage; } lerr = macmnp::NoError; return as_u8i[octet]; };
+    const u8i operator[](u32i octet) const { if (octet > 5) { lerr = macmnp::BadIndex; return macmnp::garbage; } lerr = macmnp::NoError; return as_u8i[octet]; };
     void operator/=(u64i div) { as_48bits /= div; };
 
     friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
@@ -165,7 +172,6 @@ class IPv4_Addr {
         u32i as_u32i {0x0};
         u8i  as_u8i[4]; // index [3] is MSB, index [0] is LSB, reversed order, not human readable
     };
-    static inline u8i garbage;
     mutable v4mnp::enLastError lerr {v4mnp::NoError};
 public:
     IPv4_Addr() { as_u32i = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
@@ -233,8 +239,8 @@ public:
     bool operator!=(u64i val) const { return as_u32i != val; };
     bool operator!=(const IPv4_Addr &ip) const { return as_u32i != ip.as_u32i; };
     u32i operator()() const { return as_u32i; };
-    u8i& operator[](u32i octet) { if (octet > 3) { lerr = v4mnp::BadIndex; return garbage; } lerr = v4mnp::NoError; return as_u8i[octet]; };
-    const u8i& operator[](u32i octet) const { if (octet > 3) { lerr = v4mnp::BadIndex; return garbage; } lerr = v4mnp::NoError; return as_u8i[octet]; };
+    u8i& operator[](u32i octet) { if (octet > 3) { lerr = v4mnp::BadIndex; return v4mnp::garbage; } lerr = v4mnp::NoError; return as_u8i[octet]; };
+    const u8i& operator[](u32i octet) const { if (octet > 3) { lerr = v4mnp::BadIndex; return v4mnp::garbage; } lerr = v4mnp::NoError; return as_u8i[octet]; };
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
     void operator/=(u32i div) { as_u32i /= div; };
 
@@ -251,7 +257,6 @@ class IPv6_Addr {
         u16i  as_u16i[8]; // same principe, not human readable
         u8i   as_u8i[16]; // same principe, not human readable
     };
-    static inline u16i garbage;
     mutable v6mnp::enLastError lerr {v6mnp::NoError};
     bool getzg(u32i *beg, u32i *end) const; // finds longest group of zero-hextets
     bool show_ipv4 {true};
@@ -310,13 +315,14 @@ public:
     IPv6_Addr operator>>(u32i shift) const;
     void operator>>=(u32i shift);
     u128i operator()() const { return as_u128i; };
-    u16i& operator[](u32i xtet) { if (xtet > 7) { lerr = v6mnp::BadIndex; return garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
-    const u16i& operator[](u32i xtet) const { if (xtet > 7) { lerr = v6mnp::BadIndex; return garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
+    u16i& operator[](u32i xtet) { if (xtet > 7) { lerr = v6mnp::BadIndex; return v6mnp::garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
+    const u16i& operator[](u32i xtet) const { if (xtet > 7) { lerr = v6mnp::BadIndex; return v6mnp::garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
 
     friend bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret);
     friend bool v6mnp::valid_mask(const string &ipstr, IPv6_Mask *ret);
     friend u32i v6mnp::mask_len(const IPv6_Mask &mask);
+    friend u128i v6mnp::to_u128i(const string &ipstr);
     friend MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip);
 };
 

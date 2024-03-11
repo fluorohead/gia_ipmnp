@@ -10,7 +10,7 @@ const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
 
-u32i v4mnp::dstr_to_u32i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 3
+u32i v4mnp::dstr_to_u32i(const string &str) { // decimal digits in string must be preliminarily checked for permitted symbols and max len = 3
     u8i strLen = str.length();
     u8i digNum = strLen;
     u32i ret {0x0};
@@ -33,7 +33,7 @@ string v4mnp::sub_str(const string &str, u32i pos, u32i len) {
 }
 
 bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
-    if (ret != nullptr) ret->as_u32i = 0x0;
+    if (ret != nullptr) { ret->as_u32i = 0x0; ret->lerr = BadSyntax; }
     size_t len {ipstr.length()};
     if ((len > 15) || (len < 7)) return false;
     size_t dotpos[3];
@@ -49,10 +49,6 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
     }
     if (dots != 3) return false;
     string ss[4] {
-        // ipstr.substr(dotpos[2] + 1, len - dotpos[2] - 1),
-        // ipstr.substr(dotpos[1] + 1, dotpos[2] - dotpos[1] - 1),
-        // ipstr.substr(dotpos[0] + 1, dotpos[1] - dotpos[0] - 1),
-        // ipstr.substr(0, dotpos[0])
         sub_str(ipstr, dotpos[2] + 1, len - dotpos[2] - 1),
         sub_str(ipstr, dotpos[1] + 1, dotpos[2] - dotpos[1] - 1),
         sub_str(ipstr, dotpos[0] + 1, dotpos[1] - dotpos[0] - 1),
@@ -61,7 +57,6 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
     u32i octets[4];
     for (u32i oct = 0; oct < 4; oct++) {
         if ((!ss[oct].empty()) && (ss[oct].length() <= 3)) {
-            //octets[oct] = stoi(ss[oct]);
             octets[oct] = dstr_to_u32i(ss[oct]);
         } else {
             return false;
@@ -73,11 +68,12 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
             ret->as_u32i |= (octets[i] << (8 * i));
         }
     }
+    if (ret != nullptr) ret->lerr = NoError;
     return true;
 }
 
 bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret) {
-    if (ret != nullptr) *ret = u32i(0x0);
+    if (ret != nullptr) { ret->as_u32i = 0x0; ret->lerr = BadSyntax; }
     IPv4_Mask interim;
     if (!valid_addr(maskstr, &interim)) return false;
     u32i shift {0};
@@ -89,7 +85,7 @@ bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret) {
             if (!((interim.as_u32i >> shift) & 1))
                 return false;
     }
-    if (ret != nullptr) *ret = interim;
+    if (ret != nullptr) { *ret = interim; ret->lerr = NoError; }
     return true;
 }
 
@@ -171,10 +167,8 @@ vector<string> v6mnp::xtts_split(const string &text, char spl) {
                 }
             } else {
                 if (idx == start) {
-                    //ret.push_back(text.substr(start, 1));
                     ret.push_back(v4mnp::sub_str(text, start, 1));
                 } else {
-                    //ret.push_back(text.substr(start, idx - start));
                     ret.push_back(v4mnp::sub_str(text, start, idx - start));
                 }
             }
@@ -188,7 +182,6 @@ vector<string> v6mnp::xtts_split(const string &text, char spl) {
             }
         }
         if ((idx == lastIdx) && (text[idx] != ':')) {
-            //ret.push_back(text.substr(start, idx - start + 1));
             ret.push_back(v4mnp::sub_str(text, start, idx - start + 1));
         }
     }
@@ -196,9 +189,9 @@ vector<string> v6mnp::xtts_split(const string &text, char spl) {
 }
 
 bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
-    if (ret != nullptr) *ret = {0x0, 0x0};
-    IPv6_Addr interim {0, 0}; // reverse order like in real memory
-    u32i leftToFill {8}; // hextets left to fill
+    if (ret != nullptr) {ret->as_u128i = {0x0, 0x0}; ret->lerr = BadSyntax; }
+    IPv6_Addr interim {0x0, 0x0}; // reverse order, like in real memory
+    u32i leftToFill {8}; // reversed counter of hextets left to fill
     size_t fullLen {ipstr.length()};
     bool v4embed {false}; // is embedded ipv4 address present?
     u32i v4dots {0}; // ipv4 dots counter
@@ -249,7 +242,6 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
         idx++;
         IPv4_Addr ipv4;
         v4Len = fullLen - idx;
-        //if (v4mnp::valid_addr(ipstr.substr(idx, fullLen - idx), &ipv4)) {
         if (v4mnp::valid_addr(v4mnp::sub_str(ipstr, idx, fullLen - idx), &ipv4)) {
             interim.as_u32i[0] = ipv4();
             leftToFill -= 2;
@@ -257,22 +249,17 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
     }
 
     // check for ipv4 dots in wrong places
-    //if ((v4embed) && (word_cnt(ipstr.substr(0, fullLen - v4Len), "."))) return false;
     if ((v4embed) && (word_cnt(v4mnp::sub_str(ipstr, 0, fullLen - v4Len), "."))) return false;
 
     // splitting hextets
     vector <string> xttVec;
     if (v4embed) {
-//        if (ipstr.substr(fullLen - v4Len - 2, 2) != "::") {
-//            xttVec = xtts_split(ipstr.substr(0, fullLen - v4Len - 1), ':');
         if (v4mnp::sub_str(ipstr, fullLen - v4Len - 2, 2) != "::") {
             xttVec = xtts_split(v4mnp::sub_str(ipstr, 0, fullLen - v4Len - 1), ':');
         } else {
-            //xttVec = xtts_split(ipstr.substr(0, fullLen - v4Len), ':');
             xttVec = xtts_split(v4mnp::sub_str(ipstr, 0, fullLen - v4Len), ':');
         }
     } else {
-//        xttVec = xtts_split(ipstr.substr(0, fullLen), ':');
         xttVec = xtts_split(v4mnp::sub_str(ipstr, 0, fullLen), ':');
     }
     size_t vecLen = xttVec.size(); // vector length
@@ -286,7 +273,6 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
         if ((*it).length() > 4) return false; // check for each hextet length
         u32i decimal;
         if (*it != ":") { // colon symbol is used as marker of repeating zeroes group
-            //decimal = stoi(*it, nullptr, 16);
             decimal = hstr_to_u16i(*it);
             interim.as_u16i[nextIdx] = decimal;
             nextIdx++;
@@ -294,12 +280,12 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
             nextIdx += (leftToFill - vecLen + 1);
         }
     }
-    if (ret != nullptr) *ret = interim;
+    if (ret != nullptr) { *ret = interim; ret->lerr = NoError; }
     return true;
 }
 
 bool v6mnp::valid_mask(const string &maskstr, IPv6_Mask *ret) {
-    if (ret != nullptr) *ret = {0x0, 0x0};
+    if (ret != nullptr) {ret->as_u128i = {0x0, 0x0}; ret->lerr = BadSyntax; }
     IPv6_Mask interim;
     if (!valid_addr(maskstr, &interim)) return false;
     u32i shift {0};
@@ -321,14 +307,14 @@ bool v6mnp::valid_mask(const string &maskstr, IPv6_Mask *ret) {
             if (!((interim.as_u128i.ms >> shift) & 1))
                 return false;
     }
-    if (ret != nullptr) *ret = interim;
+    if (ret != nullptr) { *ret = interim; ret->lerr = NoError; }
     return true;
 }
 
 u128i v6mnp::to_u128i(const string &ipstr) {
     IPv6_Addr ret;
     valid_addr(ipstr, &ret);
-    return ret();
+    return ret.as_u128i;
 }
 
 IPv6_Addr v6mnp::to_IPv6(const string &ipstr) {
