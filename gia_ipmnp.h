@@ -330,11 +330,8 @@ public:
     const u16i& operator[](u32i xtet) const { if (xtet > 7) { lerr = v6mnp::BadIndex; return v6mnp::garbage;} lerr = v6mnp::NoError; return as_u16i[xtet]; };
     IPv6_Addr operator~(){ return IPv6_Addr{~as_u128i.ms, ~as_u128i.ls}; };
 
-    friend bool v6mnp::valid_addr(const string &ip, IPv6_Addr *ret);
-    friend bool v6mnp::valid_mask(const string &ipstr, IPv6_Mask *ret);
-    friend u32i v6mnp::mask_len(const IPv6_Mask &mask);
-    friend u128i v6mnp::to_u128i(const string &ipstr);
-    friend MAC_Addr macmnp::gen_mcast(const IPv6_Addr &ip);
+    friend class v6mnp;
+    friend class macmnp;
 };
 
 
