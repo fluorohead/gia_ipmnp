@@ -68,31 +68,20 @@ bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret) {
         index++;
     }
     if (dots != 3) return false;
-    //cout << sub_str(ipstr, dotpos[2] + 1, len - dotpos[2] - 1) << endl;
     string ss[4] {
         sub_str(ipstr, dotpos[2] + 1, len - dotpos[2] - 1),
         sub_str(ipstr, dotpos[1] + 1, dotpos[2] - dotpos[1] - 1),
         sub_str(ipstr, dotpos[0] + 1, dotpos[1] - dotpos[0] - 1),
         sub_str(ipstr, 0, dotpos[0])
     };
-    cout << "ss[0]= " << ss[0] << " len= " << ss[0].length() << endl;
-    cout << "ss[1]= " << ss[1] << " len= " << ss[1].length() << endl;
-    cout << "ss[2]= " << ss[2] << " len= " << ss[2].length() << endl;
-    cout << "ss[3]= " << ss[3] << " len= " << ss[3].length() << endl;
-
     u32i octets[4];
     for (u32i oct = 0; oct < 4; oct++) {
         if ((!ss[oct].empty()) && (ss[oct].length() <= 3)) {
             octets[oct] = dstr_to_u32i(ss[oct]);
         } else {
-            cout << "false? why?" << endl;
             return false;
         }
     }
-    cout << "octets[0]= " << octets[0] << endl;
-    cout << "octets[1]= " << octets[1] << endl;
-    cout << "octets[2]= " << octets[2] << endl;
-    cout << "octets[3]= " << octets[3] << endl;
     if ((octets[0] > 255) || (octets[1] > 255) || (octets[2] > 255) || (octets[3] > 255)) return false;
     if (ret != nullptr) {
         for (auto i = 0; i <= 3; i++) {
