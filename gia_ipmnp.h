@@ -62,6 +62,7 @@ class v6mnp {
     static const char HEX_UPP[];  // "0123456789ABCDEF"
     static const char HEX_LOW[];  // "0123456789abcdef"
     static const char HEX_PERM[]; // "0123456789abcdefABCDEF"
+    static const char EX_EXCEPT[];
 public:
     static const u32i IETF_VIEW = 0, UPPER_VIEW = 1, LEADZRS_VIEW = 2, EXPAND_VIEW = 4, FULL_VIEW = 7; // format flags
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
@@ -88,8 +89,10 @@ class macmnp {
     static inline u32i _def_grp_len {1};
     static inline bool _def_caps {true};
     static inline u8i garbage;
-public:
     static const char hexPerm[];
+    static const char EX_LOW_MEM[];
+    static const char EX_EXCEPT[];
+public:
     static bool valid_addr(const string &macstr, u32i grp_len, char sep = DEFSEP, MAC_Addr *ret = nullptr);
     static bool valid_addr(const string &macstr, MAC_Addr *ret = nullptr) { return valid_addr(macstr, _def_grp_len, _def_sep, ret); };
     static u64i to_48bits(const string &macstr, u32i grp_len, char sep = DEFSEP);
@@ -115,6 +118,8 @@ class MAC_Addr {
     };
     mutable macmnp::enLastError lerr {macmnp::NoError};
     void fix() { as_48bits &= 0x0000FFFFFFFFFFFF; };
+    static inline const char EX_LOW_MEM[] = {"func MAC_Addr::to_str() says: not enough memory."};
+    static inline const char EX_EXCEPT [] = {"func MAC_Addr::to_str() says: exception."};
 public:
     MAC_Addr() { as_48bits = 0; };
     MAC_Addr(u64i _48bits) { as_48bits = _48bits; fix(); };
@@ -164,10 +169,9 @@ public:
     const u8i operator[](u32i octet) const { if (octet > 5) { lerr = macmnp::BadIndex; return macmnp::garbage; } lerr = macmnp::NoError; return as_u8i[octet]; };
     void operator/=(u64i div) { as_48bits /= div; };
 
-    friend IPv6_Addr v6mnp::gen_link_local(const MAC_Addr &mac);
-    friend bool macmnp::valid_addr(const string &macstr, u32i grp_len, char sep, MAC_Addr *ret);
-    friend u64i macmnp::to_48bits(const string &macstr, u32i grp_len, char sep);
-    friend u64i macmnp::to_48bits(const string &macstr);
+    friend class macmnp;
+    friend class IPv6_Addr;
+    friend class v6mnp;
 };
 
 class IPv4_Addr {
@@ -176,6 +180,8 @@ class IPv4_Addr {
         u8i  as_u8i[4]; // index [3] is MSB, index [0] is LSB, reversed order, not human readable
     };
     mutable v4mnp::enLastError lerr {v4mnp::NoError};
+    static inline const char EX_LOW_MEM[] = {"func IPv4_Addr::to_str() says: not enough memory."};
+    static inline const char EX_EXCEPT [] = {"func IPv4_Addr::to_str() says: exception."};
 public:
     IPv4_Addr() { as_u32i = 0; }; // all initializers have human readable order (from left to right), derived from symbolic notation of address, where most left is MSB and most right is LSB
     IPv4_Addr(u32i val) { as_u32i = val; };
@@ -247,9 +253,8 @@ public:
     IPv4_Addr operator~() { return IPv4_Addr{~as_u32i}; };
     void operator/=(u32i div) { as_u32i /= div; };
 
-    friend bool v4mnp::valid_addr(const string &ipstr, IPv4_Addr *ret);
-    friend bool v4mnp::valid_mask(const string &maskstr, IPv4_Mask *ret);
-    friend MAC_Addr macmnp::gen_mcast(const IPv4_Addr &ip);
+    friend class v4mnp;
+    friend class macmnp;
 };
 
 class IPv6_Addr {
@@ -263,6 +268,8 @@ class IPv6_Addr {
     mutable v6mnp::enLastError lerr {v6mnp::NoError};
     bool getzg(u32i *beg, u32i *end) const; // finds longest group of zero-hextets
     bool show_ipv4 {true};
+    static inline const char EX_LOW_MEM[] = {"func IPv6_Addr::to_str() says: not enough memory."};
+    static inline const char EX_EXCEPT [] = {"func IPv6_Addr::to_str() says: exception."};
 public:
     IPv6_Addr() { as_u128i.ms = 0; as_u128i.ls = 0; }; // all initializers have human readable order (from ms to ls), derived from symbolic notation of address, where most ms is MSB and most ls is LSB
     IPv6_Addr(u64i left, u64i right) { as_u128i.ls = right; as_u128i.ms = left; }

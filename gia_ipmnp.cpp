@@ -10,9 +10,11 @@ const char v4mnp::EX_EXCEPT[] {"func v4mnp::sub_str() says: exception."};
 const char v6mnp::HEX_UPP[]  {"0123456789ABCDEF"};
 const char v6mnp::HEX_LOW[]  {"0123456789abcdef"};
 const char v6mnp::HEX_PERM[] {"0123456789abcdefABCDEF:."};
+const char v6mnp::EX_EXCEPT[] {"func v6mnp::xtts_split() says: exception."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
-
+const char macmnp::EX_LOW_MEM[] {"func macmnp::valid_addr() says: not enough memory."};
+const char macmnp::EX_EXCEPT[] {"func macmnp::valid_addr() says: exception."};
 
 u32i v4mnp::dstr_to_u32i(const string &str) { // decimal digits in string must be preliminarily checked for permitted symbols and max len = 3
     u8i strLen = str.length();
@@ -182,22 +184,52 @@ vector<string> v6mnp::xtts_split(const string &text, char spl) {
                 }
             } else {
                 if (idx == start) {
-                    ret.push_back(v4mnp::sub_str(text, start, 1));
+                    try {
+                        ret.push_back(v4mnp::sub_str(text, start, 1));
+                    }
+                    catch (...) {
+                        cerr << EX_EXCEPT << endl;
+                        return {};
+                    }
                 } else {
-                    ret.push_back(v4mnp::sub_str(text, start, idx - start));
+                    try {
+                        ret.push_back(v4mnp::sub_str(text, start, idx - start));
+                    }
+                    catch(...) {
+                        cerr << EX_EXCEPT << endl;
+                        return {};
+                    }
                 }
             }
             start = idx + 1;
             if (idx == lastIdx) {
                 if (text[idx - 1] == ':') {
-                    ret.push_back("0");
+                    try {
+                        ret.push_back("0");
+                    }
+                    catch (...) {
+                        cerr << EX_EXCEPT << endl;
+                        return {};
+                    }
                 } else {
-                    ret.push_back("");
+                    try {
+                        cerr << EX_EXCEPT << endl;
+                        ret.push_back("");
+                    }
+                    catch (...) {
+                        return {};
+                    }
                 }
             }
         }
         if ((idx == lastIdx) && (text[idx] != ':')) {
-            ret.push_back(v4mnp::sub_str(text, start, idx - start + 1));
+            try {
+                cerr << EX_EXCEPT << endl;
+                ret.push_back(v4mnp::sub_str(text, start, idx - start + 1));
+            }
+            catch (...) {
+                return {};
+            }
         }
     }
     return ret;
@@ -396,8 +428,18 @@ IPv4_Addr::IPv4_Addr(const array<u8i,4> &arr) {
 }
 
 string IPv4_Addr::to_str() const {
-    string ret;
-    ret.reserve(17);
+    string ret(1, '\0');
+    try {
+        ret.reserve(17);
+    }
+    catch (bad_alloc()) {
+        cerr << EX_LOW_MEM << endl;
+        return "";
+    }
+    catch (...) {
+        cerr << EX_EXCEPT << endl;
+        return "";
+    }
     u32i idx {4};
     do {
         idx--;
@@ -528,8 +570,18 @@ bool IPv6_Addr::getzg(u32i *beg, u32i *end) const {
 
 string IPv6_Addr::to_str(u32i fmt) const {
     const char *useSet = ((fmt & v6mnp::UPPER_VIEW) == v6mnp::UPPER_VIEW) ? v6mnp::HEX_UPP : v6mnp::HEX_LOW;
-    string ret;
-    ret.reserve(46);
+    string ret(1, '\0');
+    try {
+        ret.reserve(46);
+    }
+    catch (bad_alloc()) {
+        cerr << EX_LOW_MEM << endl;
+        return "";
+    }
+    catch (...) {
+        cerr << EX_EXCEPT << endl;
+        return "";
+    }
     char full[8][6] {"0000:", "0000:", "0000:", "0000:", "0000:", "0000:", "0000:", "0000\0"};
     u32i leadZr[8] {0, 0, 0, 0, 0, 0, 0, 0}; // counters of leading zeroes in each hextet
     for (u32i idx = 0; idx < 8; idx++) { // walking thru each hextet
@@ -792,8 +844,18 @@ void IPv6_Addr::operator>>=(u32i shift) {
 }
 
 string MAC_Addr::to_str(u32i grp_len, bool caps, char sep) const {
-    string ret;
-    ret.reserve(18);
+    string ret(1, '\0');
+    try {
+        ret.reserve(18);
+    }
+    catch (bad_alloc()) {
+        cerr << EX_LOW_MEM << endl;
+        return "";
+    }
+    catch (...) {
+        cerr << EX_EXCEPT << endl;
+        return "";
+    }
     if (grp_len == 0) grp_len = 1;
     if (grp_len > 6) grp_len = 6;
     if ((grp_len > 3) && (grp_len < 6)) grp_len = 3;
@@ -831,7 +893,7 @@ u64i macmnp::inner_pow(u8i x, u8i y) {
     return ret;
 }
 
-u64i macmnp::hstr_to_u64i(const string &str) { // string must be preliminarily checked for permitted symbols and max len = 12
+u64i macmnp::hstr_to_u64i(const string &str) { // string with hex digits must be preliminarily checked for permitted symbols and max len = 12
     u8i strLen = str.length();
     u8i digNum = strLen;
     u64i ret {0x0};
@@ -863,8 +925,18 @@ bool macmnp::valid_addr(const string &macstr, u32i grp_len, char sep, MAC_Addr *
         if ((grp_len > 3) || (grp_len == 0) || (grp_len > 6)) return false;
     }
     u64i _48bits;
-    string interim; // cleaned from separators
-    interim.reserve(len);
+    string interim(1, '\0'); // cleaned from separators
+    try {
+        interim.reserve(len);
+    }
+    catch (bad_alloc) {
+        cerr << EX_LOW_MEM << endl;
+        return false;
+    }
+    catch (...) {
+        cerr << EX_EXCEPT << endl;
+        return false;
+    }
     u32i hexCnt {0}; // counter of hex symbols total (must be <= 12)
     u32i gSymbs {0}; // counter of symbols in one group
     u32i gSymbsMax = grp_len * 2; // amount of hex symbols that must be present one group
@@ -896,7 +968,6 @@ bool macmnp::valid_addr(const string &macstr, u32i grp_len, char sep, MAC_Addr *
     }
     if (seps != sepsMax) return false;
     if (interim.length() != 12) return false;
-    //_48bits = stoull(interim, nullptr, 16);
     _48bits = hstr_to_u64i(interim);
     if (ret != nullptr) ret->as_48bits = _48bits;
     return true;
