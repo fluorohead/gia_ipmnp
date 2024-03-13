@@ -4,11 +4,15 @@
 
 using namespace std;
 
-const char v6mnp::hexUpp[]  {"0123456789ABCDEF"};
-const char v6mnp::hexLow[]  {"0123456789abcdef"};
-const char v6mnp::hexPerm[] {"0123456789abcdefABCDEF:."};
+const char v4mnp::EX_LOW_MEM[] {"func v4mnp::sub_str() says: not enough memory."};
+const char v4mnp::EX_EXCEPT[] {"func v4mnp::sub_str() says: exception."};
+
+const char v6mnp::HEX_UPP[]  {"0123456789ABCDEF"};
+const char v6mnp::HEX_LOW[]  {"0123456789abcdef"};
+const char v6mnp::HEX_PERM[] {"0123456789abcdefABCDEF:."};
 
 const char macmnp::hexPerm[] {"0123456789abcdefABCDEF"};
+
 
 u32i v4mnp::dstr_to_u32i(const string &str) { // decimal digits in string must be preliminarily checked for permitted symbols and max len = 3
     u8i strLen = str.length();
@@ -24,8 +28,19 @@ u32i v4mnp::dstr_to_u32i(const string &str) { // decimal digits in string must b
 string v4mnp::sub_str(const string &str, u32i pos, u32i len) {
     u32i strLen = str.length();
     if (pos < strLen) {
-        u32i resLen = (pos + len > strLen) ? strLen - pos : len;
-        string ret(resLen, '\0');
+        u32i resLen = ((pos + len) > strLen) ? strLen - pos : len;
+        string ret(1, '\0');
+        try {
+            ret.reserve(resLen);
+        }
+        catch (bad_alloc) {
+            cerr << EX_LOW_MEM << endl;
+            return "";
+        }
+        catch (...) {
+            cerr << EX_EXCEPT << endl;
+            return "";
+        }
         memcpy(ret.data(), str.data() + pos, resLen);
         return ret;
     }
@@ -223,7 +238,7 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
     bool badsymb; // is bad symbols present?
     for (auto && ipchar : ipstr) {
         badsymb = true;
-        for (auto && perm : hexPerm) {
+        for (auto && perm : HEX_PERM) {
             if (ipchar == perm) {
                 badsymb = false;
                 break;
@@ -260,7 +275,7 @@ bool v6mnp::valid_addr(const string &ipstr, IPv6_Addr *ret) {
             xttVec = xtts_split(v4mnp::sub_str(ipstr, 0, fullLen - v4Len), ':');
         }
     } else {
-        xttVec = xtts_split(v4mnp::sub_str(ipstr, 0, fullLen), ':');
+        xttVec = xtts_split(ipstr, ':');
     }
     size_t vecLen = xttVec.size(); // vector length
     if (vecLen > leftToFill) return false;
@@ -512,7 +527,7 @@ bool IPv6_Addr::getzg(u32i *beg, u32i *end) const {
 }
 
 string IPv6_Addr::to_str(u32i fmt) const {
-    const char *useSet = ((fmt & v6mnp::UPPER_VIEW) == v6mnp::UPPER_VIEW) ? v6mnp::hexUpp : v6mnp::hexLow;
+    const char *useSet = ((fmt & v6mnp::UPPER_VIEW) == v6mnp::UPPER_VIEW) ? v6mnp::HEX_UPP : v6mnp::HEX_LOW;
     string ret;
     ret.reserve(46);
     char full[8][6] {"0000:", "0000:", "0000:", "0000:", "0000:", "0000:", "0000:", "0000\0"};
@@ -785,7 +800,7 @@ string MAC_Addr::to_str(u32i grp_len, bool caps, char sep) const {
     u32i idx {6};
     u32i gCnt{0}; // count elements in one group
     char octet[3] {"  "};
-    const char *useSet = (caps) ? v6mnp::hexUpp : v6mnp::hexLow;
+    const char *useSet = (caps) ? v6mnp::HEX_UPP : v6mnp::HEX_LOW;
     do {
         idx--;
         gCnt++;

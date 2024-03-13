@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-//#include <iostream>
+#include <iostream>
 
 #define DEFSEP ':'
 
@@ -34,6 +34,8 @@ class v4mnp {
     static u32i dstr_to_u32i(const string &str);
     static string sub_str(const string &str, u32i pos, u32i len);
     static inline u8i garbage;
+    static const char EX_LOW_MEM[];
+    static const char EX_EXCEPT[];
 public:
     static const u32i UNKNOWN_ADDR {0x00000000};
     static const u32i LOOPBACK_MASK {0xFFFFFFFF};
@@ -57,11 +59,11 @@ class v6mnp {
     static u32i word_cnt(const string &text, const string &patt); // word counter
     static inline u32i _fmt = 0; // IETF_VIEW
     static inline u16i garbage;
+    static const char HEX_UPP[];  // "0123456789ABCDEF"
+    static const char HEX_LOW[];  // "0123456789abcdef"
+    static const char HEX_PERM[]; // "0123456789abcdefABCDEF"
 public:
     static const u32i IETF_VIEW = 0, UPPER_VIEW = 1, LEADZRS_VIEW = 2, EXPAND_VIEW = 4, FULL_VIEW = 7; // format flags
-    static const char hexUpp[];  // "0123456789ABCDEF"
-    static const char hexLow[];  // "0123456789abcdef"
-    static const char hexPerm[]; // "0123456789abcdefABCDEF"
     static bool valid_addr(const string &ipstr, IPv6_Addr *ret = nullptr); // address validator
     static bool valid_mask(const string &maskstr, IPv6_Mask *ret = nullptr); // mask validator
     static u128i to_u128i(const string &ipstr);
@@ -76,6 +78,7 @@ public:
     enum enLastError : u8i {NoError = 0, BadSyntax = 1, BadIndex = 2, STL_Exception = 3};
 
     friend class IPv6_Addr;
+    friend class MAC_Addr;
 };
 
 class macmnp {
@@ -272,6 +275,7 @@ public:
     string to_str(u32i fmt) const;
     string to_str() const { return to_str(v6mnp::what_fmt()); };
     array<u8i,16> to_media_tx() const;
+    v6mnp::enLastError last_err() const { return lerr; };
     bool is_unspec() const { return !(as_u128i.ls | as_u128i.ms); }; // ::1/128 - RFC 4291
     bool is_loopback() const { return (as_u128i.ls | as_u128i.ms) == 1; }; // ::/128 - RFC 4291
     bool is_glob_ucast() const { return (as_u16i[v6mnp::xtt1] & 0xFFE0) == 0x2000; }; // 2000::/3 - RFC 3513
